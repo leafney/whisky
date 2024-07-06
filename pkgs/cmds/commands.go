@@ -48,3 +48,12 @@ var ScriptHostName string
 
 //go:embed reboot.sh
 var ScriptReboot string
+
+//go:embed yacd_mode.sh
+var ScriptYacdMode string
+
+//go:embed yacd_stats.sh
+var ScriptYacdStats string
+
+//go:embed yacd_allow_lan.sh
+var ScriptYacdAllowLan string

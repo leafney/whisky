@@ -18,5 +18,14 @@ func bindRouter(app *fiber.App) {
 		return c.SendString("Hello Whisky!")
 	})
 
-	app.Get("/cpu", handler.GetCpuTemp)
+	// router
+	app.Get("/router", handler.RouterInfo)
+	app.Post("/router", handler.RouterStatus)
+
+	// network
+	app.Get("/network", handler.NetWorkInfo)
+
+	//	clash
+	app.Get("/clash", handler.ClashInfo)
+	app.Post("/clash", handler.ClashAction)
 }
