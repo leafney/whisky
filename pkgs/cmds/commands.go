@@ -6,7 +6,7 @@
  * @Description:
  */
 
-package commands
+package cmds
 
 import _ "embed"
 
@@ -38,4 +38,13 @@ var ScriptCrashStop string
 var ScriptCrashExist string
 
 //go:embed network_device.sh
-var ScriptNetworkingDevice string
+var ScriptNetworkDevice string
+
+//go:embed network_dhcp.sh
+var ScriptNetWorkDhcp string
+
+//go:embed hostname.sh
+var ScriptHostName string
+
+//go:embed reboot.sh
+var ScriptReboot string

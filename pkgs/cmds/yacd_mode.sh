@@ -35,4 +35,4 @@ case "$mode_type" in
 esac
 
 # 将结果输出到标准输出
-echo "$mode_result"
+echo -n "$mode_result"

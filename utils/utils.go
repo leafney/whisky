@@ -11,7 +11,8 @@ package utils
 import "os/exec"
 
 func RunScript(script string, args ...string) (string, error) {
-	cmd := exec.Command(script, args...)
+	cmd := exec.Command("/bin/sh", script)
+	cmd.Args = append(cmd.Args, args...)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err

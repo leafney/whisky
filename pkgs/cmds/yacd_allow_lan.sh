@@ -24,4 +24,4 @@ else
 fi
 
 # 将结果输出到标准输出
-echo "$lan_result"
+echo -n "$lan_result"

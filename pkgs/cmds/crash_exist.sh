@@ -4,7 +4,7 @@
 file_path="/etc/init.d/shellcrash"
 
 if [ -f "$file_path" ]; then
-  echo "true"
+  echo -n "true"
 else
-  echo "false"
+  echo -n "false"
 fi

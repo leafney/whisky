@@ -7,4 +7,4 @@ default_port=9999
 port="${1:-$default_port}"
 
 yacd_stats=$(curl -s http://127.0.0.1:${port}/configs)
-echo "$yacd_stats"
+echo -n "$yacd_stats"

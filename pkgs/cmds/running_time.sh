@@ -11,4 +11,4 @@ minutes=$(($uptime_seconds % 3600 / 60))
 seconds=$(($uptime_seconds % 60))
 
 running_time="${days}d ${hours}h ${minutes}m ${seconds}s"
-echo "$running_time"
+echo -n "$running_time"

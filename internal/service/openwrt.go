@@ -10,12 +10,12 @@ package service
 
 import (
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/pkgs/commands"
+	"github.com/leafney/whisky/pkgs/cmds"
 	"github.com/leafney/whisky/utils"
 )
 
 func GetCpuTemp() string {
-	res, err := utils.RunBash(commands.ScriptTempCpu)
+	res, err := utils.RunBash(cmds.ScriptTempCpu)
 	if err != nil {
 		global.GXLog.Errorf("获取 cpu 温度操作失败 [%v]", err)
 		return ""

@@ -8,8 +8,12 @@
 
 package global
 
-import "github.com/leafney/rose/xlog"
+import (
+	rleveldb "github.com/leafney/rose-leveldb"
+	"github.com/leafney/rose/xlog"
+)
 
 var (
-	GXLog *xlog.Log
+	GLevelDB *rleveldb.LevelDB
+	GXLog    *xlog.Log
 )

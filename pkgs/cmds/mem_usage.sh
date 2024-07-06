@@ -10,4 +10,4 @@ mem_usage=$(awk '/MemTotal/ {total=$2}
                      percent=used/total*100
                      printf "%.2f%%", percent
                    }' /proc/meminfo)
-echo "$mem_usage"
+echo -n "$mem_usage"

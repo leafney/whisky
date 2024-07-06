@@ -1,4 +1,4 @@
 #!/bin/sh
 
 boot_time=$(uptime -s)
-echo "$boot_time"
+echo -n "$boot_time"
