@@ -15,12 +15,12 @@ import (
 )
 
 func GetCpuTemp() string {
-	res, err := utils.RunScript(commands.ScriptTempCpu)
+	res, err := utils.RunBash(commands.ScriptTempCpu)
 	if err != nil {
-		global.GXLog.Errorf("获取 cpu 温度操作失败 %v", err)
+		global.GXLog.Errorf("获取 cpu 温度操作失败 [%v]", err)
 		return ""
 	}
 
-	global.GXLog.Infof("cpu 温度 [%v]", res)
+	global.GXLog.Infof("当前 cpu 温度 [%v]", res)
 	return res
 }

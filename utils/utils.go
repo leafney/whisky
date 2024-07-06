@@ -18,3 +18,13 @@ func RunScript(script string, args ...string) (string, error) {
 	}
 	return string(output), nil
 }
+
+func RunBash(shellStr string, args ...string) (string, error) {
+	cmd := exec.Command("/bin/sh", "-c", shellStr)
+	cmd.Args = append(cmd.Args, args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
