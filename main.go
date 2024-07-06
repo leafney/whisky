@@ -8,14 +8,23 @@
 
 package main
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/leafney/whisky/cmd/core"
+	"github.com/leafney/whisky/internal/handler"
+)
 
 func main() {
+
+	core.InitXLog()
+
 	app := fiber.New()
 
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("Hello Whisky!")
 	})
+
+	app.Get("/cpu", handler.GetCpuTemp)
 
 	app.Listen(":8080")
 }
