@@ -10,6 +10,7 @@ package vars
 
 const (
 	//
+	RouterStatus     = "status"
 	RouterStsRestart = "restart"
 	//
 	ClashStatus = "status"
