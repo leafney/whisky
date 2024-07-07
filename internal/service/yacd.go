@@ -46,8 +46,14 @@ func YacdInfo() (*vmodel.Clash, error) {
 		clashInfo.SocksPort = data.Get("socks-port").String()
 		clashInfo.MixedPort = data.Get("mixed-port").String()
 		clashInfo.RedirPort = data.Get("redir-port").String()
-		clashInfo.Mode = data.Get("mode").String()
+		mode := data.Get("mode").String()
+		clashInfo.Mode = mode
 		clashInfo.AllowLan = data.Get("allow-lan").Bool()
+
+		//	记录下当前最新的 mode 状态
+		if err := global.GLevelDB.SetS(vars.KFCYacdMode, rose.StrToLower(mode)); err != nil {
+			global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
+		}
 	} else {
 		err2 = fmt.Errorf("获取 clash 信息失败")
 	}
@@ -101,7 +107,10 @@ func YacdClashMode(mode string) error {
 		return errors.New("不支持的 Mode")
 	}
 
-	// TODO mode 切换成功，记录下最新的 mode 值，用于自动切换
+	// mode 切换成功，记录下最新的 mode 值，用于自动切换
+	if err := global.GLevelDB.SetS(vars.KFCYacdMode, mode); err != nil {
+		global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
+	}
 
 	return nil
 }
@@ -141,8 +150,8 @@ func YacdClashSwitch(swt string) error {
 	default:
 		//	自动切换，根据上次的 mode 值，自动判断当前的状态，且只在 rule 和 direct 之间切换；如果是 global 则当做 rule 处理
 
-		//	TODO 从缓存中获取上一次的mode状态
-		lastMode := ""
+		// 从缓存中获取上一次的mode状态
+		lastMode, _ := global.GLevelDB.GetS(vars.KFCYacdMode)
 		nextMode := ""
 		if rose.StrEqualFold(lastMode, vars.ClashModeDirect) {
 			// 如果上一次为 direct，则新状态为 rule
@@ -160,6 +169,11 @@ func YacdClashSwitch(swt string) error {
 		global.GXLog.Infof("direct 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
+		}
+
+		// 操作成功，记录下最新的 mode 值
+		if err := global.GLevelDB.SetS(vars.KFCYacdMode, nextMode); err != nil {
+			global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
 		}
 	}
 
