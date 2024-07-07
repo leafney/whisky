@@ -14,9 +14,7 @@ import (
 )
 
 func bindRouter(app *fiber.App) {
-	app.Get("/", func(c fiber.Ctx) error {
-		return c.SendString("Hello Whisky!")
-	})
+	app.Get("/", handler.Home)
 
 	// router
 	app.Get("/router", handler.RouterInfo)
@@ -26,7 +24,10 @@ func bindRouter(app *fiber.App) {
 	app.Get("/network", handler.NetWorkInfo)
 
 	//	clash
-	app.Get("/clash", handler.ClashInfo)
-	app.Post("/clash", handler.ClashAction)
+	app.Post("/scrash", handler.SCrashAction)
+	//app.Post("/oclash", handler.YacdClashAction)
+
+	app.Get("/yacd", handler.YacdClashInfo)
+	app.Post("/yacd", handler.YacdClashAction)
 
 }

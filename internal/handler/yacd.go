@@ -2,7 +2,7 @@
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
- * @Date:        2024-07-06 18:38
+ * @Date:        2024-07-07 17:10
  * @Description:
  */
 
@@ -16,9 +16,9 @@ import (
 	"github.com/leafney/whisky/internal/service"
 )
 
-func ClashInfo(c fiber.Ctx) error {
+func YacdClashInfo(c fiber.Ctx) error {
 
-	info, err := service.ClashInfo()
+	info, err := service.YacdInfo()
 	if err != nil {
 		return response.Fail(c, err.Error())
 	}
@@ -26,7 +26,7 @@ func ClashInfo(c fiber.Ctx) error {
 	return response.OkWithData(c, info)
 }
 
-func ClashAction(c fiber.Ctx) error {
+func YacdClashAction(c fiber.Ctx) error {
 
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
@@ -36,21 +36,15 @@ func ClashAction(c fiber.Ctx) error {
 
 	global.GXLog.Info(data)
 
-	if status, ok := data[vars.ClashStatus]; ok {
-		global.GXLog.Infof("status %v", status)
-		if err := service.ClashStatus(status); err != nil {
-			global.GXLog.Errorf("ClashStatus error [%v]", err)
-			return response.Fail(c, err.Error())
-		}
-	} else if mode, ok := data[vars.ClashMode]; ok {
+	if mode, ok := data[vars.ClashMode]; ok {
 		global.GXLog.Infof("mode %v", mode)
-		if err := service.ClashMode(mode); err != nil {
+		if err := service.YacdClashMode(mode); err != nil {
 			global.GXLog.Errorf("ClashMode error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else if swt, ok := data[vars.ClashSwitch]; ok {
 		global.GXLog.Infof("switch %v", swt)
-		if err := service.ClashSwitch(swt); err != nil {
+		if err := service.YacdClashSwitch(swt); err != nil {
 			global.GXLog.Errorf("ClashSwitch error [%v]", err)
 			return response.Fail(c, err.Error())
 		}

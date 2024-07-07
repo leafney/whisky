@@ -2,7 +2,7 @@
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
- * @Date:        2024-07-06 19:03
+ * @Date:        2024-07-07 17:05
  * @Description:
  */
 
@@ -20,9 +20,19 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func ClashInfo() (*vmodel.Clash, error) {
+func YacdInfo() (*vmodel.Clash, error) {
+	// TODO 判断是否存在 crash 服务
 
-	res, err := utils.RunBash(cmds.ScriptYacdStats)
+	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
+	port := ""
+
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdStats)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return nil, err
+	}
+
+	res, err := utils.RunBashFile(fPath, port)
 	if err != nil {
 		return nil, err
 	}
@@ -46,36 +56,21 @@ func ClashInfo() (*vmodel.Clash, error) {
 	return clashInfo, err2
 }
 
-func ClashStatus(status string) error {
-	// TODO 判断是否存在 crash 服务
-
-	switch status {
-	case vars.ClashStsStart:
-	case vars.ClashStsRestart:
-		_, err := utils.RunBash(cmds.ScriptCrashStart)
-		if err != nil {
-			return err
-		}
-	case vars.ClashStsStop:
-		if _, err := utils.RunBash(cmds.ScriptCrashStop); err != nil {
-			return err
-		}
-	default:
-		return errors.New("不支持的状态")
-	}
-
-	return nil
-}
-
-func ClashMode(mode string) error {
+func YacdClashMode(mode string) error {
 	// TODO 判断是否存在 crash 服务
 
 	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
 
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return err
+	}
+
 	switch mode {
 	case vars.ClashModeRule:
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeRule, port)
+		res, err := utils.RunBashFile(fPath, vars.ClashModeRule, port)
 		if err != nil {
 			return err
 		}
@@ -85,7 +80,7 @@ func ClashMode(mode string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashModeDirect:
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
+		res, err := utils.RunBashFile(fPath, vars.ClashModeDirect, port)
 		if err != nil {
 			return err
 		}
@@ -95,7 +90,7 @@ func ClashMode(mode string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashModeGlobal:
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeGlobal, port)
+		res, err := utils.RunBashFile(fPath, vars.ClashModeGlobal, port)
 		if err != nil {
 			return err
 		}
@@ -113,15 +108,21 @@ func ClashMode(mode string) error {
 	return nil
 }
 
-func ClashSwitch(swt string) error {
+func YacdClashSwitch(swt string) error {
 	// TODO 判断是否存在 crash 服务
 
 	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
 
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return err
+	}
+
 	switch swt {
 	case vars.ClashSwitchRule:
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeRule, port)
+		res, err := utils.RunBashFile(fPath, vars.ClashModeRule, port)
 		if err != nil {
 			return err
 		}
@@ -131,7 +132,7 @@ func ClashSwitch(swt string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashSwitchDirect:
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
+		res, err := utils.RunBashFile(fPath, vars.ClashModeDirect, port)
 		if err != nil {
 			return err
 		}
@@ -154,7 +155,7 @@ func ClashSwitch(swt string) error {
 			nextMode = vars.ClashModeDirect
 		}
 
-		res, err := utils.RunBashStr(cmds.ScriptYacdMode, nextMode, port)
+		res, err := utils.RunBashFile(fPath, nextMode, port)
 		if err != nil {
 			return err
 		}
@@ -166,36 +167,4 @@ func ClashSwitch(swt string) error {
 	}
 
 	return nil
-}
-
-func ClashTest() {
-	//fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdModeB)
-	//if err != nil {
-	//	global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
-	//	return
-	//}
-	//global.GXLog.Infof("shell 脚本文件 [%v]", fPath)
-	//
-	//res, err := utils.RunBashFile(fPath, "direct")
-
-	//res, err := utils.RunBash("hello='$1'; echo $hello", "hello")
-
-	command := "hello='nihao'; echo -n $hello"
-
-	// 要传入的参数
-	//param := "world"
-
-	//// 创建命令
-	//cmd := exec.Command("/bin/sh", "-c", command)
-	//
-	//// 设置命令参数
-	//cmd.Args = append(cmd.Args, param)
-	//
-	//// 执行命令并获取输出
-	//res, err := cmd.CombinedOutput()
-
-	//command = fmt.Sprintf(command, param)
-	res, err := utils.RunBash(command)
-
-	global.GXLog.Infof("res [%v] err [%v]", res, err)
 }
