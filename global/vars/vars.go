@@ -9,6 +9,11 @@
 package vars
 
 const (
+	ShellTempDir = ".shell"
+	LevelDBDir   = ".cache"
+)
+
+const (
 	//
 	RouterStatus     = "status"
 	RouterStsRestart = "restart"

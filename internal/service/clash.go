@@ -27,7 +27,7 @@ func ClashInfo() (*vmodel.Clash, error) {
 		return nil, err
 	}
 
-	global.GXLog.Infof("clash info [%v]", res)
+	//global.GXLog.Infof("clash info [%v]", res)
 
 	clashInfo := new(vmodel.Clash)
 	var err2 error
@@ -166,4 +166,17 @@ func ClashSwitch(swt string) error {
 	}
 
 	return nil
+}
+
+func ClashTest() {
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdModeB)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return
+	}
+	global.GXLog.Infof("shell 脚本文件 [%v]", fPath)
+
+	res, err := utils.RunBashFile(fPath, "direct")
+
+	global.GXLog.Infof("res [%v] err [%v]", res, err)
 }

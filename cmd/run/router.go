@@ -28,4 +28,5 @@ func bindRouter(app *fiber.App) {
 	//	clash
 	app.Get("/clash", handler.ClashInfo)
 	app.Post("/clash", handler.ClashAction)
+
 }

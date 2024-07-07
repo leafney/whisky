@@ -11,10 +11,11 @@ package core
 import (
 	rleveldb "github.com/leafney/rose-leveldb"
 	"github.com/leafney/whisky/global"
+	"github.com/leafney/whisky/global/vars"
 )
 
 func InitLevelDB(stop chan struct{}) {
-	dbPath := ".cache"
+	dbPath := vars.LevelDBDir
 	//if rose.StrIsEmpty(dbPath) {
 	//	dbPath = vars.DefLEVDBName
 	//}

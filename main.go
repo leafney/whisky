@@ -47,6 +47,7 @@ func main() {
 		core.InitXLog()
 		//core.InitConfig()
 		//core.InitMsqQueue()
+		core.InitShellClean()
 
 		// 用于退出的通道
 		quitChan := make(chan struct{})

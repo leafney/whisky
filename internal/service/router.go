@@ -59,7 +59,7 @@ func RouterInfo() *vmodel.Stat {
 	if err != nil {
 		nowTime = rose.TNowDateTime()
 	}
-	statInfo.BootTime = nowTime
+	statInfo.NowTime = nowTime
 
 	return statInfo
 }

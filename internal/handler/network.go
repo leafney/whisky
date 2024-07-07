@@ -11,9 +11,10 @@ package handler
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/leafney/whisky/global/response"
+	"github.com/leafney/whisky/internal/service"
 )
 
 func NetWorkInfo(c fiber.Ctx) error {
-
+	service.ClashTest()
 	return response.Ok(c)
 }
