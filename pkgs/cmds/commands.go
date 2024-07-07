@@ -61,5 +61,5 @@ var ScriptYacdStats string
 //go:embed yacd_allow_lan.sh
 var ScriptYacdAllowLan string
 
-//go:embed test.sh.gz
-var ScriptTest []byte
+//go:embed test.sh
+var ScriptTest string

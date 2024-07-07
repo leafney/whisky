@@ -75,7 +75,7 @@ func ClashMode(mode string) error {
 
 	switch mode {
 	case vars.ClashModeRule:
-		res, err := utils.RunBash(cmds.ScriptYacdMode, vars.ClashModeRule, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeRule, port)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func ClashMode(mode string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashModeDirect:
-		res, err := utils.RunBash(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func ClashMode(mode string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashModeGlobal:
-		res, err := utils.RunBash(cmds.ScriptYacdMode, vars.ClashModeGlobal, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeGlobal, port)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func ClashSwitch(swt string) error {
 
 	switch swt {
 	case vars.ClashSwitchRule:
-		res, err := utils.RunBash(cmds.ScriptYacdMode, vars.ClashModeRule, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeRule, port)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func ClashSwitch(swt string) error {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 	case vars.ClashSwitchDirect:
-		res, err := utils.RunBash(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, vars.ClashModeDirect, port)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func ClashSwitch(swt string) error {
 			nextMode = vars.ClashModeDirect
 		}
 
-		res, err := utils.RunBash(cmds.ScriptYacdMode, nextMode, port)
+		res, err := utils.RunBashStr(cmds.ScriptYacdMode, nextMode, port)
 		if err != nil {
 			return err
 		}
@@ -169,14 +169,33 @@ func ClashSwitch(swt string) error {
 }
 
 func ClashTest() {
-	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdModeB)
-	if err != nil {
-		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
-		return
-	}
-	global.GXLog.Infof("shell 脚本文件 [%v]", fPath)
+	//fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdModeB)
+	//if err != nil {
+	//	global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+	//	return
+	//}
+	//global.GXLog.Infof("shell 脚本文件 [%v]", fPath)
+	//
+	//res, err := utils.RunBashFile(fPath, "direct")
 
-	res, err := utils.RunBashFile(fPath, "direct")
+	//res, err := utils.RunBash("hello='$1'; echo $hello", "hello")
+
+	command := "hello='nihao'; echo -n $hello"
+
+	// 要传入的参数
+	//param := "world"
+
+	//// 创建命令
+	//cmd := exec.Command("/bin/sh", "-c", command)
+	//
+	//// 设置命令参数
+	//cmd.Args = append(cmd.Args, param)
+	//
+	//// 执行命令并获取输出
+	//res, err := cmd.CombinedOutput()
+
+	//command = fmt.Sprintf(command, param)
+	res, err := utils.RunBash(command)
 
 	global.GXLog.Infof("res [%v] err [%v]", res, err)
 }

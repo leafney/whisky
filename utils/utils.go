@@ -31,23 +31,8 @@ func RunScript(script string, args ...string) (string, error) {
 	return string(output), nil
 }
 
-func RunBash(shellStr string, args ...string) (string, error) {
-	// 这种方式经测试后发现无法正确传入参数
-	//cmd := exec.Command("/bin/sh", "-c", shellStr)
-	//cmd.Args = append(cmd.Args, args...)
-
-	// 后来改用这种方式，经测试，这种方式也不对
-	//command := fmt.Sprintf("%s %s", shellStr, strings.Join(args, " "))
-	//cmd := exec.Command("/bin/sh", "-c", command)
-
-	// 第三种方式
-	//cmd := exec.Command("/bin/sh", "-c", shellStr)
-	//cmd.Stdin = strings.NewReader(strings.Join(args, " "))
-
-	// 第四种方法
-	args = append([]string{"-c", shellStr}, args...)
-	cmd := exec.Command("/bin/sh", args...)
-
+func RunBash(shellStr string) (string, error) {
+	cmd := exec.Command("/bin/sh", "-c", shellStr)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -55,6 +40,33 @@ func RunBash(shellStr string, args ...string) (string, error) {
 	return string(output), nil
 }
 
+// 用于测试 如何传入参数
+//func RunBashStr(shellStr string, args ...string) (string, error) {
+//	// 这种方式经测试后发现无法正确传入参数
+//	//cmd := exec.Command("/bin/sh", "-c", shellStr)
+//	//cmd.Args = append(cmd.Args, args...)
+//
+//	// 后来改用这种方式，经测试，这种方式也不对
+//	//command := fmt.Sprintf("%s %s", shellStr, strings.Join(args, " "))
+//	//cmd := exec.Command("/bin/sh", "-c", command)
+//
+//	// 第三种方式
+//	//cmd := exec.Command("/bin/sh", "-c", shellStr)
+//	//cmd.Stdin = strings.NewReader(strings.Join(args, " "))
+//
+//	// 第四种方法
+//	args = append([]string{"-c", shellStr}, args...)
+//	cmd := exec.Command("/bin/sh", args...)
+//
+//	output, err := cmd.Output()
+//	if err != nil {
+//		return "", err
+//	}
+//	return string(output), nil
+//}
+
+// RunBashFile 执行 shell 文件并传入参数
+// 等同于命令：/bin/sh -c shell.sh arg1 arg2
 func RunBashFile(shellFilePath string, args ...string) (string, error) {
 	command := fmt.Sprintf("%s %s", shellFilePath, strings.Join(args, " "))
 	cmd := exec.Command("/bin/sh", "-c", command)

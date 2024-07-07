@@ -9,12 +9,10 @@
 package utils
 
 import (
-	"github.com/leafney/rose"
-	"github.com/leafney/whisky/pkgs/cmds"
 	"testing"
 )
 
 func TestGetTypeName(t *testing.T) {
-	a := rose.Md5HashBuf(cmds.ScriptTest)
-	t.Logf("name %v", a)
+	//a := rose.Md5HashBuf(cmds.ScriptTest)
+	//t.Logf("name %v", a)
 }
