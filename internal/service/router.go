@@ -10,6 +10,7 @@ package service
 
 import (
 	"github.com/leafney/rose"
+	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/internal/vmodel"
 	"github.com/leafney/whisky/pkgs/cmds"
 	"github.com/leafney/whisky/utils"
@@ -65,8 +66,12 @@ func RouterInfo() *vmodel.Stat {
 }
 
 func RouterRestart() error {
-	if _, err := utils.RunBash(cmds.ScriptReboot); err != nil {
-		return err
-	}
+
+	go func() {
+		if _, err := utils.RunBash(cmds.ScriptReboot); err != nil {
+			global.GXLog.Errorf("ScriptReboot error [%v]", err)
+		}
+	}()
+
 	return nil
 }

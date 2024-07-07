@@ -22,14 +22,17 @@ func SCrashStatus(status string) error {
 	switch status {
 	case vars.ClashStsStart:
 	case vars.ClashStsRestart:
-		_, err := utils.RunBash(cmds.ScriptCrashStart)
-		if err != nil {
-			return err
-		}
+		go func() {
+			if _, err := utils.RunBash(cmds.ScriptCrashStart); err != nil {
+				global.GXLog.Errorf("ScriptCrashStart error [%v]", err)
+			}
+		}()
 	case vars.ClashStsStop:
-		if _, err := utils.RunBash(cmds.ScriptCrashStop); err != nil {
-			return err
-		}
+		go func() {
+			if _, err := utils.RunBash(cmds.ScriptCrashStop); err != nil {
+				global.GXLog.Errorf("ScriptCrashStop error [%v]", err)
+			}
+		}()
 	default:
 		return errors.New("不支持的操作状态")
 	}
