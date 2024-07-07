@@ -34,9 +34,6 @@ var ScriptCrashStart string
 //go:embed crash_stop.sh
 var ScriptCrashStop string
 
-//go:embed crash_exist.sh
-var ScriptCrashExist string
-
 //go:embed network_device.sh
 var ScriptNetworkDevice string
 
@@ -62,3 +59,6 @@ var ScriptYacdAllowLan []byte
 
 //go:embed yacd_stats.sh.gz
 var ScriptYacdStats []byte
+
+//go:embed crash_exist.sh.gz
+var ScriptCrashExist []byte

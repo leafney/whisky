@@ -21,7 +21,6 @@ import (
 )
 
 func YacdInfo() (*vmodel.Clash, error) {
-	// TODO 判断是否存在 crash 服务
 
 	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
@@ -57,7 +56,6 @@ func YacdInfo() (*vmodel.Clash, error) {
 }
 
 func YacdClashMode(mode string) error {
-	// TODO 判断是否存在 crash 服务
 
 	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
@@ -109,7 +107,6 @@ func YacdClashMode(mode string) error {
 }
 
 func YacdClashSwitch(swt string) error {
-	// TODO 判断是否存在 crash 服务
 
 	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""

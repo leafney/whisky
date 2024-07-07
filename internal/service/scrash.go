@@ -10,6 +10,7 @@ package service
 
 import (
 	"errors"
+	"github.com/leafney/rose"
 	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/global/vars"
 	"github.com/leafney/whisky/pkgs/cmds"
@@ -17,7 +18,10 @@ import (
 )
 
 func SCrashStatus(status string) error {
-	// TODO 判断是否存在 shellCrash 服务
+	// 判断是否存在 shellCrash 服务
+	if exist := chkCrashExist(); !exist {
+		return errors.New("shellCrash not found")
+	}
 
 	switch status {
 	case vars.ClashStsStart:
@@ -70,4 +74,20 @@ func ClashTest() {
 	res, err := utils.RunBash(command)
 
 	global.GXLog.Infof("res [%v] err [%v]", res, err)
+}
+
+func chkCrashExist() bool {
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptCrashExist)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return false
+	}
+	res, err := utils.RunBashFile(fPath)
+	if err != nil {
+		global.GXLog.Errorf("ScriptCrashExist 脚本执行异常 [%v]", err)
+		return false
+	}
+	global.GXLog.Infof("res [%v]", res)
+
+	return rose.StrToBool(res)
 }
