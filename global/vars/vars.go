@@ -21,6 +21,7 @@ const (
 	ClashStatus = "status"
 	ClashMode   = "mode"
 	ClashSwitch = "switch"
+	ClashLan    = "lan"
 	//
 	ClashStsStart   = "start"
 	ClashStsRestart = "restart"

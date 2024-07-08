@@ -48,6 +48,12 @@ func YacdClashAction(c fiber.Ctx) error {
 			global.GXLog.Errorf("ClashSwitch error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
+	} else if lan, ok := data[vars.ClashLan]; ok {
+		global.GXLog.Infof("lan %v", lan)
+		if err := service.YacdClashAllowLan(lan); err != nil {
+			global.GXLog.Errorf("ClashLan error [%v]", err)
+			return response.Fail(c, err.Error())
+		}
 	} else {
 		global.GXLog.Error("参数错误")
 		return response.Fail(c, "参数错误")

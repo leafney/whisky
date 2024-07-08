@@ -166,7 +166,8 @@ func YacdClashSwitch(swt string) error {
 			return err
 		}
 
-		global.GXLog.Infof("direct 返回的状态码 [%v]", res)
+		global.GXLog.Infof("mode [%v] 返回的状态码 [%v]", nextMode, res)
+
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -175,6 +176,34 @@ func YacdClashSwitch(swt string) error {
 		if err := global.GLevelDB.SetS(vars.KFCYacdMode, nextMode); err != nil {
 			global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
 		}
+	}
+
+	return nil
+}
+
+func YacdClashAllowLan(lan string) error {
+	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
+	port := ""
+
+	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdAllowLan)
+	if err != nil {
+		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		return err
+	}
+
+	switch lan {
+	case "true", "false":
+		res, err := utils.RunBashFile(fPath, lan, port)
+		if err != nil {
+			return err
+		}
+
+		global.GXLog.Infof("allowLan [%v] 返回的状态码 [%v]", lan, res)
+		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
+			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
+		}
+	default:
+		return errors.New("不支持的参数")
 	}
 
 	return nil
