@@ -31,17 +31,4 @@ type (
 		AllowLan  bool   `json:"allow_lan"`
 		Mode      string `json:"mode"`
 	}
-
-	// 局域网 dhcp 设备
-	Dhcp struct {
-		HostName string `json:"host_name"`
-		IP       string `json:"ip"`
-		Mac      string `json:"mac"`
-	}
-
-	// 网络设备
-	Device struct {
-		Device string `json:"device"`
-		IP     string `json:"ip"`
-	}
 )

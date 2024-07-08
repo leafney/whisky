@@ -121,7 +121,23 @@ func LoadByteBashFile(shellName []byte) (string, error) {
 	return filePath, nil
 }
 
+// DirExists 判断目录是否存在，返回 true 或 false
+func DirExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return false // 其他错误，也认为目录不存在
+}
+
 func DeleteFilesByExtension(dirPath string, ext string) error {
+	if !DirExists(dirPath) {
+		return fmt.Errorf("目录 [%v] 不存在，跳过清除操作", dirPath)
+	}
+
 	// 读取目录下的所有文件和文件夹
 	files, err := os.ReadDir(dirPath)
 	if err != nil {

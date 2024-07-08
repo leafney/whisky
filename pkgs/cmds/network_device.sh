@@ -12,6 +12,7 @@ for device in $(ls /sys/class/net); do
 
   # 输出结果
   if [[ -n "$ip_address" ]]; then
-    echo -n "${device}-${ip_address}"
+    # 这里 echo 不加 -n，使其输出内容换行显示
+    echo "${device}#${ip_address}"
   fi
 done

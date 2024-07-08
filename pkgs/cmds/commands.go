@@ -49,6 +49,9 @@ var ScriptReboot string
 //go:embed test.sh
 var ScriptTest string
 
+//go:embed myip.sh
+var ScriptMyIP string
+
 // -----------------------------
 
 //go:embed yacd_mode.sh.gz
