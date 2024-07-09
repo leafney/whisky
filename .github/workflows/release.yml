@@ -1,0 +1,89 @@
+name: Tag for Release
+
+on:
+  push:
+    branches:
+      - "!*"
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Release on GitHub
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    env:
+      PROJECT_NAME: whisky 服务
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Change timezone
+        run: echo $(sudo timedatectl set-timezone Asia/Shanghai)
+
+      - name: Define variables
+        run: |
+          echo "app_version=$(echo ${GITHUB_REF:10})" >> $GITHUB_ENV
+          echo "git_branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "git_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "build_time=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+      - name: Install UPX
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ env.app_version }}
+          GIT_BRANCH: ${{ env.git_branch }}
+          GIT_COMMIT: ${{ env.git_commit }}
+          BUILD_TIME: ${{ env.build_time }}
+
+      - name: Send Success Notify
+        uses: leafney/dingtalk-action@v1
+        if: always()
+        env:
+          DINGTALK_ACCESS_TOKEN: ${{ secrets.DINGTALK_ACCESS_TOKEN }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        with:
+          msgtype: markdown
+          notify_when: 'success'
+          title: '[${{ env.PROJECT_NAME }}] 执行文件打包构建成功'
+          text: |
+            **<font color=#56A6FE size=3> 🎉${{ env.PROJECT_NAME }}🎉 构建成功</font>**
+
+            Action **[${{ github.workflow }}]** 构建成功
+
+            [下载二进制执行文件](${{ github.server_url }}/${{ github.repository }}/releases)
+
+      - name: Send Failure Notify
+        uses: leafney/dingtalk-action@v1
+        if: always()
+        env:
+          DINGTALK_ACCESS_TOKEN: ${{ secrets.DINGTALK_ACCESS_TOKEN }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        with:
+          msgtype: markdown
+          notify_when: 'failure'
+          title: '[${{ env.PROJECT_NAME }}] 执行文件打包构建失败'
+          text: |
+            **<font color=#FF0000 size=3> 🌴${{ env.PROJECT_NAME }}🌴 构建失败</font>**
+
+            Action **[${{ github.workflow }}]** 构建失败
+
+            [查看错误信息](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
