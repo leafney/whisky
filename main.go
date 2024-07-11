@@ -20,6 +20,8 @@ var (
 	p         string
 	v         bool
 	h         bool
+	y         string
+	w         string
 	Version   = "v0.1.0"
 	GitBranch = ""
 	GitCommit = ""
@@ -28,7 +30,9 @@ var (
 
 func main() {
 	flag.BoolVarP(&h, "help", "h", false, "help")
-	flag.StringVarP(&p, "port", "p", "8080", "port")
+	flag.StringVarP(&p, "port", "p", "8080", "server port")
+	flag.StringVarP(&y, "yacd", "y", "9999", "yacd port")
+	flag.StringVarP(&w, "webhook", "w", "", "webhook url")
 	flag.BoolVarP(&v, "version", "v", false, "version")
 	flag.Parse()
 
@@ -46,6 +50,7 @@ func main() {
 		// 基础服务
 		core.InitXLog()
 		//core.InitConfig()
+		core.InitEConfig(y, w)
 		//core.InitMsqQueue()
 		core.InitShellClean()
 

@@ -18,17 +18,6 @@ import (
 	"strings"
 )
 
-func GetCpuTemp() string {
-	res, err := utils.RunBash(cmds.ScriptTempCpu)
-	if err != nil {
-		global.GXLog.Errorf("获取 cpu 温度操作失败 [%v]", err)
-		return ""
-	}
-
-	global.GXLog.Infof("当前 cpu 温度 [%v]", res)
-	return res
-}
-
 func NetWorkInfo() (res *vmodel.NetWork) {
 	// 初始化
 	res = &vmodel.NetWork{

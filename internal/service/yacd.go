@@ -22,8 +22,14 @@ import (
 
 func YacdInfo() (*vmodel.Clash, error) {
 
-	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
+	// 优先从命令行参数中获取
+	ePort := global.GEConfig.YacdPort
+	if !rose.StrIsEmpty(ePort) {
+		port = ePort
+	}
+
+	// TODO 其次从配置文件中获取 yacd 端口，如果为空则使用默认值
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdStats)
 	if err != nil {
@@ -63,8 +69,14 @@ func YacdInfo() (*vmodel.Clash, error) {
 
 func YacdClashMode(mode string) error {
 
-	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
+	// 优先从命令行参数中获取
+	ePort := global.GEConfig.YacdPort
+	if !rose.StrIsEmpty(ePort) {
+		port = ePort
+	}
+
+	// TODO 其次从配置文件中获取 yacd 端口，如果为空则使用默认值
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
 	if err != nil {
@@ -117,8 +129,14 @@ func YacdClashMode(mode string) error {
 
 func YacdClashSwitch(swt string) error {
 
-	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
+	// 优先从命令行参数中获取
+	ePort := global.GEConfig.YacdPort
+	if !rose.StrIsEmpty(ePort) {
+		port = ePort
+	}
+
+	// TODO 其次从配置文件中获取 yacd 端口，如果为空则使用默认值
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
 	if err != nil {
@@ -182,8 +200,14 @@ func YacdClashSwitch(swt string) error {
 }
 
 func YacdClashAllowLan(lan string) error {
-	// TODO 从配置文件中获取 yacd 端口，如果为空则使用默认值
 	port := ""
+	// 优先从命令行参数中获取
+	ePort := global.GEConfig.YacdPort
+	if !rose.StrIsEmpty(ePort) {
+		port = ePort
+	}
+
+	// TODO 其次从配置文件中获取 yacd 端口，如果为空则使用默认值
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdAllowLan)
 	if err != nil {

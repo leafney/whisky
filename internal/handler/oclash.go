@@ -16,6 +16,7 @@ import (
 	"github.com/leafney/whisky/internal/service"
 )
 
+// TODO 待实现
 func OClashAction(c fiber.Ctx) error {
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
@@ -35,6 +36,11 @@ func OClashAction(c fiber.Ctx) error {
 		global.GXLog.Error("参数错误")
 		return response.Fail(c, "参数错误")
 	}
+
+	return response.Ok(c)
+}
+
+func OClashRestart(c fiber.Ctx) error {
 
 	return response.Ok(c)
 }
