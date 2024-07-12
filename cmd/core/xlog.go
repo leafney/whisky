@@ -13,7 +13,7 @@ import (
 	"github.com/leafney/whisky/global"
 )
 
-func InitXLog() {
+func InitXLog(debug bool) {
 
 	x := xlog.NewXLog()
 
@@ -26,7 +26,7 @@ func InitXLog() {
 	//}
 
 	// 调试
-	x.SetDebug(true)
+	x.SetDebug(debug)
 	// 日志级别
 	//x.SetLevel(xlog.ErrorLevel)
 

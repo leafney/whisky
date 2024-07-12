@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-func NetWorkInfo() (res *vmodel.NetWork) {
+func NetWorkInfo() (res *vmodel.NetWork, err error) {
 	// 初始化
 	res = &vmodel.NetWork{
 		Wan:     &vmodel.Extranet{},
@@ -26,12 +26,26 @@ func NetWorkInfo() (res *vmodel.NetWork) {
 		Devices: make([]*vmodel.Dhcp, 0),
 	}
 
-	res.Wan, _ = NetWorkExtranetIP()
-	res.HostName = NetWorkHostName()
-	res.Lan, _ = NetWorkIntranetIP()
+	res.Wan, err = NetWorkExtranetIP()
+	if err != nil {
+		global.GXLog.Errorf("[NetWorkExtranetIP] 执行失败 [%v]", err)
+	}
+
+	res.HostName, err = NetWorkHostName()
+	if err != nil {
+		global.GXLog.Errorf("[NetWorkHostName] 执行失败 [%v]", err)
+	}
+
+	res.Lan, err = NetWorkIntranetIP()
+	if err != nil {
+		global.GXLog.Errorf("[NetWorkIntranetIP] 执行失败 [%v]", err)
+	}
 
 	//
-	res.Devices, _ = NetWorkDhcp()
+	res.Devices, err = NetWorkDhcp()
+	if err != nil {
+		global.GXLog.Errorf("[NetWorkDhcp] 执行失败 [%v]", err)
+	}
 
 	return
 }
@@ -41,16 +55,16 @@ func NetWorkIntranetIP() (res []*vmodel.Device, err error) {
 	res = make([]*vmodel.Device, 0)
 	deviceInfo, err := utils.RunBash(cmds.ScriptNetworkDevice)
 	if err != nil {
-		deviceInfo = ""
+		global.GXLog.Errorf("shell 脚本 [ScriptNetworkDevice] 执行失败 [%v]", err)
+		return nil, err
 	}
 
 	// 对返回的结果去除前后空行
 	deviceInfo = rose.StrTrim(deviceInfo)
-	global.GXLog.Debugf("获取到的设备 [%v]", deviceInfo)
-
+	//
 	devices := strings.Split(deviceInfo, "\n")
 	for _, v := range devices {
-		global.GXLog.Debugf("获取到的设备222 [%v]", v)
+		global.GXLog.Debugf("获取到的设备 [%v]", v)
 		vv := strings.Split(v, "#")
 		if len(vv) == 2 {
 			res = append(res, &vmodel.Device{
@@ -70,11 +84,12 @@ func NetWorkExtranetIP() (res *vmodel.Extranet, err error) {
 
 	ipInfo, err := utils.RunBash(cmds.ScriptMyIP)
 	if err != nil {
-		ipInfo = ""
+		global.GXLog.Errorf("shell 脚本 [ScriptMyIP] 执行失败 [%v]", err)
+		return nil, err
 	}
 
 	if !rose.StrIsEmpty(ipInfo) {
-		global.GXLog.Debugf("ip 结果[%v]", ipInfo)
+		global.GXLog.Debugf("ip 请求结果[%v]", ipInfo)
 
 		//	当前 IP：123.121.56.153  来自于：中国 北京 北京  联通
 		// 使用正则表达式提取IP地址
@@ -91,29 +106,33 @@ func NetWorkExtranetIP() (res *vmodel.Extranet, err error) {
 		}
 		res.Location = rose.StrTrim(tLoc)
 
-		global.GXLog.Debugf("提取后结果 [%v]-[%v]", tIP, tLoc)
+		global.GXLog.Debugf("ip 提取后结果 [%v]-[%v]", tIP, tLoc)
 	}
 
 	return
 }
 
-func NetWorkHostName() string {
+func NetWorkHostName() (string, error) {
 	hostInfo, err := utils.RunBash(cmds.ScriptHostName)
 	if err != nil {
-		hostInfo = ""
+		global.GXLog.Errorf("shell 脚本 [ScriptHostName] 执行失败 [%v]", err)
+		return "", err
 	}
 
-	return hostInfo
+	return hostInfo, nil
 }
 
 func NetWorkDhcp() (res []*vmodel.Dhcp, err error) {
 	res = make([]*vmodel.Dhcp, 0)
 	dhcpInfo, err := utils.RunBash(cmds.ScriptNetWorkDhcp)
 	if err != nil {
-		dhcpInfo = ""
+		global.GXLog.Errorf("shell 脚本 [ScriptNetWorkDhcp] 执行失败 [%v]", err)
+		return nil, err
 	}
+
+	global.GXLog.Debugf("返回的 dhcp 列表 [%v]", dhcpInfo)
+
 	if !rose.StrIsEmpty(dhcpInfo) {
-		global.GXLog.Debugf("返回的 dhcp [%v]", dhcpInfo)
 		dhcps := strings.Split(dhcpInfo, "\n")
 		for _, cp := range dhcps {
 			cps := rose.StrAnySplit(cp, " ")
