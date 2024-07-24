@@ -3,7 +3,7 @@
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
  * @Date:        2024-07-07 19:23
- * @Description:
+ * @Description: openclash 相关操作
  */
 
 package handler
