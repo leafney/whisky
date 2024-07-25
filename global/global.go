@@ -11,9 +11,11 @@ package global
 import (
 	rleveldb "github.com/leafney/rose-leveldb"
 	"github.com/leafney/rose/xlog"
+	"github.com/leafney/whisky/config"
 )
 
 var (
 	GLevelDB *rleveldb.LevelDB
 	GXLog    *xlog.Log
+	GEConfig *config.EConfig
 )

@@ -28,13 +28,13 @@ func SCrashStatus(status string) error {
 	case vars.ClashStsRestart:
 		go func() {
 			if _, err := utils.RunBash(cmds.ScriptCrashStart); err != nil {
-				global.GXLog.Errorf("ScriptCrashStart error [%v]", err)
+				global.GXLog.Errorf("shell 脚本 [ScriptCrashStart] 执行失败 [%v]", err)
 			}
 		}()
 	case vars.ClashStsStop:
 		go func() {
 			if _, err := utils.RunBash(cmds.ScriptCrashStop); err != nil {
-				global.GXLog.Errorf("ScriptCrashStop error [%v]", err)
+				global.GXLog.Errorf("shell 脚本 [ScriptCrashStop] 执行失败 [%v]", err)
 			}
 		}()
 	default:
@@ -79,15 +79,16 @@ func ClashTest() {
 func chkCrashExist() bool {
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptCrashExist)
 	if err != nil {
-		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		global.GXLog.Errorf("shell 脚本 [ScriptCrashExist] 载入失败 [%v]", err)
 		return false
 	}
 	res, err := utils.RunBashFile(fPath)
 	if err != nil {
-		global.GXLog.Errorf("ScriptCrashExist 脚本执行异常 [%v]", err)
+		global.GXLog.Errorf("shell 脚本 [ScriptCrashExist] 执行失败 [%v]", err)
 		return false
 	}
-	global.GXLog.Infof("res [%v]", res)
+
+	global.GXLog.Debugf("shell 脚本 [ScriptCrashExist] 执行结果 [%v]", res)
 
 	return rose.StrToBool(res)
 }

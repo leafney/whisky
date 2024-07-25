@@ -15,6 +15,9 @@ import (
 )
 
 func NetWorkInfo(c fiber.Ctx) error {
-	netInfo := service.NetWorkInfo()
+	netInfo, err := service.NetWorkInfo()
+	if err != nil {
+		return response.Fail(c, err.Error())
+	}
 	return response.OkWithData(c, netInfo)
 }
