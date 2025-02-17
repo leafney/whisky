@@ -20,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21
+          go-version: 1.22
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          version: '~> v2'
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -62,8 +62,8 @@ jobs:
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         with:
           msgtype: markdown
-          notify_when: 'success'
-          title: '[${{ env.PROJECT_NAME }}] 执行文件打包构建成功'
+          notify_when: "success"
+          title: "[${{ env.PROJECT_NAME }}] 执行文件打包构建成功"
           text: |
             **<font color=#56A6FE size=3> 🎉${{ env.PROJECT_NAME }}🎉 构建成功</font>**
 
@@ -79,8 +79,8 @@ jobs:
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         with:
           msgtype: markdown
-          notify_when: 'failure'
-          title: '[${{ env.PROJECT_NAME }}] 执行文件打包构建失败'
+          notify_when: "failure"
+          title: "[${{ env.PROJECT_NAME }}] 执行文件打包构建失败"
           text: |
             **<font color=#FF0000 size=3> 🌴${{ env.PROJECT_NAME }}🌴 构建失败</font>**
 

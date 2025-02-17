@@ -9,12 +9,12 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/global/response"
 	"github.com/leafney/whisky/internal/service"
 )
 
-func NetWorkInfo(c fiber.Ctx) error {
+func NetWorkInfo(c *fiber.Ctx) error {
 	netInfo, err := service.NetWorkInfo()
 	if err != nil {
 		return response.Fail(c, err.Error())

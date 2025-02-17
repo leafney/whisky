@@ -9,7 +9,7 @@
 package response
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/global/respcode"
 )
 
@@ -20,7 +20,7 @@ type Response struct {
 	Error string      `json:"error"` // 给开发者看的详细错误信息
 }
 
-func jsonResult(c fiber.Ctx, statusCode int, errCode int, msg string, data interface{}, err string) error {
+func jsonResult(c *fiber.Ctx, statusCode int, errCode int, msg string, data interface{}, err string) error {
 	return c.Status(statusCode).JSON(Response{
 		Code:  errCode,
 		Msg:   msg,
@@ -29,15 +29,15 @@ func jsonResult(c fiber.Ctx, statusCode int, errCode int, msg string, data inter
 	})
 }
 
-func Ok(c fiber.Ctx) error {
+func Ok(c *fiber.Ctx) error {
 	return jsonResult(c, fiber.StatusOK, respcode.Success, "操作成功", map[string]interface{}{}, "")
 }
 
-func OkWithData(c fiber.Ctx, data interface{}) error {
+func OkWithData(c *fiber.Ctx, data interface{}) error {
 	return jsonResult(c, fiber.StatusOK, respcode.Success, "操作成功", data, "")
 }
 
 // Fail 操作失败
-func Fail(c fiber.Ctx, err string) error {
+func Fail(c *fiber.Ctx, err string) error {
 	return jsonResult(c, fiber.StatusOK, respcode.Failed, "操作失败", map[string]interface{}{}, err)
 }

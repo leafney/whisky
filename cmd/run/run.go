@@ -11,14 +11,15 @@ package run
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v3"
-	"github.com/leafney/rose"
-	"github.com/leafney/whisky/global"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/rose"
+	"github.com/leafney/whisky/global"
 )
 
 func Start(port string, stop chan struct{}) {

@@ -9,7 +9,7 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/global/response"
 	"github.com/leafney/whisky/global/vars"
@@ -17,7 +17,7 @@ import (
 )
 
 // TODO 待实现
-func OClashAction(c fiber.Ctx) error {
+func OClashAction(c *fiber.Ctx) error {
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
 		global.GXLog.Errorf("解析 body 参数操作异常", err)
@@ -40,7 +40,7 @@ func OClashAction(c fiber.Ctx) error {
 	return response.Ok(c)
 }
 
-func OClashRestart(c fiber.Ctx) error {
+func OClashRestart(c *fiber.Ctx) error {
 
 	return response.Ok(c)
 }

@@ -9,14 +9,14 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/global/response"
 	"github.com/leafney/whisky/global/vars"
 	"github.com/leafney/whisky/internal/service"
 )
 
-func YacdClashInfo(c fiber.Ctx) error {
+func YacdClashInfo(c *fiber.Ctx) error {
 
 	info, err := service.YacdInfo()
 	if err != nil {
@@ -26,7 +26,7 @@ func YacdClashInfo(c fiber.Ctx) error {
 	return response.OkWithData(c, info)
 }
 
-func YacdClashAction(c fiber.Ctx) error {
+func YacdClashAction(c *fiber.Ctx) error {
 
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
