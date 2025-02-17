@@ -13,11 +13,13 @@ import (
 	"github.com/leafney/whisky/config"
 	"github.com/leafney/whisky/internal"
 	"github.com/leafney/whisky/pkg/leveldbx"
+	"github.com/leafney/whisky/pkg/version"
 	"github.com/leafney/whisky/pkg/xlogx"
 )
 
 var AppSet = wire.NewSet(
 	config.NewConfig,
+	version.NewInfo,
 	xlogx.NewXLogSvc,
 	leveldbx.NewLevelDBSvc,
 	internal.Set,

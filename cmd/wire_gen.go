@@ -11,6 +11,7 @@ import (
 	"github.com/leafney/whisky/internal/api"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/pkg/leveldbx"
+	"github.com/leafney/whisky/pkg/version"
 	"github.com/leafney/whisky/pkg/xlogx"
 )
 
@@ -22,7 +23,10 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		return nil, nil, err
 	}
 	xLogSvc := xlogx.NewXLogSvc(configConfig)
-	home := &api.Home{}
+	info := version.NewInfo()
+	home := &api.Home{
+		VersionInfo: info,
+	}
 	router := &service.Router{
 		XLog: xLogSvc,
 	}

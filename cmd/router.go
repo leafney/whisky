@@ -10,6 +10,7 @@ package cmd
 
 import (
 	"context"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/internal/api"
 )

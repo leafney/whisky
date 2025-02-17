@@ -11,10 +11,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/leafney/whisky/cmd"
-	"github.com/spf13/pflag"
 	"log"
 	"runtime"
+
+	"github.com/leafney/whisky/cmd"
+	"github.com/leafney/whisky/pkg/version"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -29,6 +31,12 @@ var (
 	GitCommit = ""
 	BuildTime = "2024-07-06 13:04:30"
 )
+
+func init() {
+	version.VersionInfo.Version = Version
+	version.VersionInfo.GitCommit = GitCommit
+	version.VersionInfo.BuildTime = BuildTime
+}
 
 func main() {
 	pflag.BoolVarP(&h, "help", "h", false, "help")
