@@ -15,6 +15,7 @@ import (
 
 func bindRouter(app *fiber.App) {
 	app.Get("/", handler.Home)
+	app.Get("/version", handler.Version)
 
 	// router
 	app.Get("/router", handler.RouterInfo)

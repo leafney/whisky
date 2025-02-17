@@ -8,8 +8,16 @@
 
 package handler
 
-import "github.com/gofiber/fiber/v3"
+import (
+	"github.com/gofiber/fiber/v3"
+	"github.com/leafney/whisky/global/response"
+)
 
 func Home(c fiber.Ctx) error {
 	return c.SendString("Hello Whisky!")
+}
+
+func Version(c fiber.Ctx) error {
+
+	return response.Ok(c)
 }
