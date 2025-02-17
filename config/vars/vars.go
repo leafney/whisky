@@ -37,7 +37,3 @@ const (
 	//
 	ClashStatusCode = "204"
 )
-
-const (
-	KFCYacdMode = "cacheKeyYacdMode"
-)

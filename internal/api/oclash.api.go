@@ -2,22 +2,27 @@
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
- * @Date:        2024-07-07 19:23
- * @Description: openclash 相关操作
+ * @Date:        2025-02-17 17:55
+ * @Description:
  */
 
-package handler
+package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/response"
-	"github.com/leafney/whisky/global/vars"
 	"github.com/leafney/whisky/internal/service"
+	"github.com/leafney/whisky/pkg/response"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
 
+type OClash struct {
+	XLog *xlogx.XLogSvc
+}
+
 // TODO 待实现
-func OClashAction(c *fiber.Ctx) error {
+func (a *OClash) OClashAction(c *fiber.Ctx) error {
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
 		global.GXLog.Errorf("解析 body 参数操作异常", err)
@@ -40,7 +45,7 @@ func OClashAction(c *fiber.Ctx) error {
 	return response.Ok(c)
 }
 
-func OClashRestart(c *fiber.Ctx) error {
+func (a *OClash) OClashRestart(c *fiber.Ctx) error {
 
 	return response.Ok(c)
 }

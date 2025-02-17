@@ -10,8 +10,8 @@ package core
 
 import (
 	rleveldb "github.com/leafney/rose-leveldb"
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/vars"
 )
 
 func InitLevelDB(stop chan struct{}) {

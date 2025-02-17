@@ -12,11 +12,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/leafney/rose"
+	"github.com/leafney/whisky/config/cache"
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/vars"
+	"github.com/leafney/whisky/pkg/cmds"
+	"github.com/leafney/whisky/pkg/utils"
+
 	"github.com/leafney/whisky/internal/vmodel"
-	"github.com/leafney/whisky/pkgs/cmds"
-	"github.com/leafney/whisky/utils"
+
 	"github.com/tidwall/gjson"
 )
 
@@ -24,7 +27,7 @@ func YacdInfo() (*vmodel.Clash, error) {
 
 	port := ""
 	// 优先从命令行参数中获取
-	ePort := global.GEConfig.YacdPort
+	ePort := "" // global.GEConfig.YacdPort
 	if !rose.StrIsEmpty(ePort) {
 		port = ePort
 	}
@@ -56,7 +59,7 @@ func YacdInfo() (*vmodel.Clash, error) {
 		clashInfo.AllowLan = data.Get("allow-lan").Bool()
 
 		//	记录下当前最新的 mode 状态
-		if err := global.GLevelDB.SetS(vars.KFCYacdMode, rose.StrToLower(mode)); err != nil {
+		if err := global.GLevelDB.SetS(cache.KFCYacdMode, rose.StrToLower(mode)); err != nil {
 			global.GXLog.Errorf("设置缓存 [KFCYacdMode] 操作异常 [%v]", err)
 		}
 	} else {
@@ -70,7 +73,7 @@ func YacdClashMode(mode string) error {
 
 	port := ""
 	// 优先从命令行参数中获取
-	ePort := global.GEConfig.YacdPort
+	ePort := "" // global.Config.YacdPort
 	if !rose.StrIsEmpty(ePort) {
 		port = ePort
 	}
@@ -119,7 +122,7 @@ func YacdClashMode(mode string) error {
 	}
 
 	// mode 切换成功，记录下最新的 mode 值，用于自动切换
-	if err := global.GLevelDB.SetS(vars.KFCYacdMode, mode); err != nil {
+	if err := global.GLevelDB.SetS(cache.KFCYacdMode, mode); err != nil {
 		global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
 	}
 
@@ -130,7 +133,7 @@ func YacdClashSwitch(swt string) error {
 
 	port := ""
 	// 优先从命令行参数中获取
-	ePort := global.GEConfig.YacdPort
+	ePort := "" // global.GEConfig.YacdPort
 	if !rose.StrIsEmpty(ePort) {
 		port = ePort
 	}
@@ -168,7 +171,7 @@ func YacdClashSwitch(swt string) error {
 		//	自动切换，根据上次的 mode 值，自动判断当前的状态，且只在 rule 和 direct 之间切换；如果是 global 则当做 rule 处理
 
 		// 从缓存中获取上一次的mode状态
-		lastMode, _ := global.GLevelDB.GetS(vars.KFCYacdMode)
+		lastMode, _ := global.GLevelDB.GetS(cache.KFCYacdMode)
 		nextMode := ""
 		if rose.StrEqualFold(lastMode, vars.ClashModeDirect) {
 			// 如果上一次为 direct，则新状态为 rule
@@ -190,7 +193,7 @@ func YacdClashSwitch(swt string) error {
 		}
 
 		// 操作成功，记录下最新的 mode 值
-		if err := global.GLevelDB.SetS(vars.KFCYacdMode, nextMode); err != nil {
+		if err := global.GLevelDB.SetS(cache.KFCYacdMode, nextMode); err != nil {
 			global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
 		}
 	}
@@ -201,7 +204,7 @@ func YacdClashSwitch(swt string) error {
 func YacdClashAllowLan(lan string) error {
 	port := ""
 	// 优先从命令行参数中获取
-	ePort := global.GEConfig.YacdPort
+	ePort := "" //global.GEConfig.YacdPort
 	if !rose.StrIsEmpty(ePort) {
 		port = ePort
 	}

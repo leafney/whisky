@@ -2,21 +2,26 @@
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
- * @Date:        2024-07-07 17:10
+ * @Date:        2025-02-17 18:02
  * @Description:
  */
 
-package handler
+package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/response"
-	"github.com/leafney/whisky/global/vars"
 	"github.com/leafney/whisky/internal/service"
+	"github.com/leafney/whisky/pkg/response"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
 
-func YacdClashInfo(c *fiber.Ctx) error {
+type YAcd struct {
+	XLog *xlogx.XLogSvc
+}
+
+func (a *YAcd) YacdClashInfo(c *fiber.Ctx) error {
 
 	info, err := service.YacdInfo()
 	if err != nil {
@@ -26,7 +31,7 @@ func YacdClashInfo(c *fiber.Ctx) error {
 	return response.OkWithData(c, info)
 }
 
-func YacdClashAction(c *fiber.Ctx) error {
+func (a *YAcd) YacdClashAction(c *fiber.Ctx) error {
 
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {

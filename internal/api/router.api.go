@@ -2,21 +2,29 @@
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
- * @Date:        2024-07-06 18:38
+ * @Date:        2025-02-17 17:56
  * @Description:
  */
 
-package handler
+package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/response"
-	"github.com/leafney/whisky/global/vars"
 	"github.com/leafney/whisky/internal/service"
+	"github.com/leafney/whisky/pkg/response"
 )
 
-func SCrashAction(c *fiber.Ctx) error {
+type Router struct {
+}
+
+func (a *Router) RouterInfo(c *fiber.Ctx) error {
+	stat := service.RouterInfo()
+	return response.OkWithData(c, stat)
+}
+
+func (a *Router) RouterStatus(c *fiber.Ctx) error {
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
 		global.GXLog.Errorf("解析 body 参数操作异常", err)
@@ -25,10 +33,10 @@ func SCrashAction(c *fiber.Ctx) error {
 
 	global.GXLog.Info(data)
 
-	if status, ok := data[vars.ClashStatus]; ok {
+	if status, ok := data[vars.RouterStatus]; ok && status == vars.RouterStsRestart {
 		global.GXLog.Infof("status %v", status)
-		if err := service.SCrashStatus(status); err != nil {
-			global.GXLog.Errorf("SCrashStatus error [%v]", err)
+		if err := service.RouterRestart(); err != nil {
+			global.GXLog.Errorf("RouterStatus error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else {

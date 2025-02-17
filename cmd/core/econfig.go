@@ -14,7 +14,7 @@ import (
 )
 
 func InitEConfig(yacdPort, webHook string) {
-	eCfg := &config.EConfig{
+	eCfg := &config.Config{
 		YacdPort: yacdPort,
 		WebHook:  webHook,
 	}

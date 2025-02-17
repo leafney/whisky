@@ -9,9 +9,9 @@
 package core
 
 import (
+	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/global"
-	"github.com/leafney/whisky/global/vars"
-	"github.com/leafney/whisky/utils"
+	"github.com/leafney/whisky/pkg/utils"
 )
 
 func InitShellClean() {

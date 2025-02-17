@@ -12,8 +12,9 @@ import (
 	"github.com/leafney/rose"
 	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/internal/vmodel"
-	"github.com/leafney/whisky/pkgs/cmds"
-	"github.com/leafney/whisky/utils"
+	"github.com/leafney/whisky/pkg/cmds"
+	"github.com/leafney/whisky/pkg/utils"
+
 	"regexp"
 	"strings"
 )
