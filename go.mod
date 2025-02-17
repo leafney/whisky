@@ -1,6 +1,6 @@
 module github.com/leafney/whisky
 
-go 1.22.8
+go 1.22
 
 require (
 	github.com/klauspost/compress v1.17.9

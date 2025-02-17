@@ -10,16 +10,21 @@ package service
 
 import (
 	"errors"
+
 	"github.com/leafney/rose"
 	"github.com/leafney/whisky/config/vars"
-	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/pkg/cmds"
 	"github.com/leafney/whisky/pkg/utils"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
 
-func SCrashStatus(status string) error {
+type SCrash struct {
+	XLog *xlogx.XLogSvc
+}
+
+func (s *SCrash) SCrashStatus(status string) error {
 	// 判断是否存在 shellCrash 服务
-	if exist := chkCrashExist(); !exist {
+	if exist := s.ChkCrashExist(); !exist {
 		return errors.New("shellCrash not found")
 	}
 
@@ -28,13 +33,13 @@ func SCrashStatus(status string) error {
 	case vars.ClashStsRestart:
 		go func() {
 			if _, err := utils.RunBash(cmds.ScriptCrashStart); err != nil {
-				global.GXLog.Errorf("shell 脚本 [ScriptCrashStart] 执行失败 [%v]", err)
+				s.XLog.Errorf("shell 脚本 [ScriptCrashStart] 执行失败 [%v]", err)
 			}
 		}()
 	case vars.ClashStsStop:
 		go func() {
 			if _, err := utils.RunBash(cmds.ScriptCrashStop); err != nil {
-				global.GXLog.Errorf("shell 脚本 [ScriptCrashStop] 执行失败 [%v]", err)
+				s.XLog.Errorf("shell 脚本 [ScriptCrashStop] 执行失败 [%v]", err)
 			}
 		}()
 	default:
@@ -44,7 +49,7 @@ func SCrashStatus(status string) error {
 	return nil
 }
 
-func ClashTest() {
+func (s *SCrash) ClashTest() {
 	//fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdModeB)
 	//if err != nil {
 	//	global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
@@ -73,22 +78,22 @@ func ClashTest() {
 	//command = fmt.Sprintf(command, param)
 	res, err := utils.RunBash(command)
 
-	global.GXLog.Infof("res [%v] err [%v]", res, err)
+	s.XLog.Infof("res [%v] err [%v]", res, err)
 }
 
-func chkCrashExist() bool {
+func (s *SCrash) ChkCrashExist() bool {
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptCrashExist)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptCrashExist] 载入失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptCrashExist] 载入失败 [%v]", err)
 		return false
 	}
 	res, err := utils.RunBashFile(fPath)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptCrashExist] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptCrashExist] 执行失败 [%v]", err)
 		return false
 	}
 
-	global.GXLog.Debugf("shell 脚本 [ScriptCrashExist] 执行结果 [%v]", res)
+	s.XLog.Debugf("shell 脚本 [ScriptCrashExist] 执行结果 [%v]", res)
 
 	return rose.StrToBool(res)
 }

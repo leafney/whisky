@@ -15,10 +15,11 @@ import (
 )
 
 type NetWork struct {
+	NetWorkSvc *service.NetWork
 }
 
 func (a *NetWork) NetWorkInfo(c *fiber.Ctx) error {
-	netInfo, err := service.NetWorkInfo()
+	netInfo, err := a.NetWorkSvc.NetWorkInfo()
 	if err != nil {
 		return response.Fail(c, err.Error())
 	}

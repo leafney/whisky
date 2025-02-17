@@ -10,20 +10,24 @@ package service
 
 import (
 	"github.com/leafney/rose"
-	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/internal/vmodel"
 	"github.com/leafney/whisky/pkg/cmds"
 	"github.com/leafney/whisky/pkg/utils"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
 
-func RouterInfo() *vmodel.Stat {
+type Router struct {
+	XLog *xlogx.XLogSvc
+}
+
+func (s *Router) RouterInfo() *vmodel.Stat {
 
 	statInfo := new(vmodel.Stat)
 
 	//	获取 cpu 温度
 	cpuTemp, err := utils.RunBash(cmds.ScriptTempCpu)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptTempCpu] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptTempCpu] 执行失败 [%v]", err)
 		cpuTemp = ""
 	}
 	statInfo.CpuTemp = cpuTemp
@@ -31,7 +35,7 @@ func RouterInfo() *vmodel.Stat {
 	// mem usage
 	memUsage, err := utils.RunBash(cmds.ScriptMemUsage)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptMemUsage] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptMemUsage] 执行失败 [%v]", err)
 		memUsage = ""
 	}
 	statInfo.MemUsage = memUsage
@@ -39,7 +43,7 @@ func RouterInfo() *vmodel.Stat {
 	//	disk usage
 	diskUsage, err := utils.RunBash(cmds.ScriptDiskUsage)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptDiskUsage] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptDiskUsage] 执行失败 [%v]", err)
 		diskUsage = ""
 	}
 	statInfo.DiskUsage = diskUsage
@@ -47,7 +51,7 @@ func RouterInfo() *vmodel.Stat {
 	//	running time
 	runTime, err := utils.RunBash(cmds.ScriptRunningTime)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptRunningTime] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptRunningTime] 执行失败 [%v]", err)
 		runTime = ""
 	}
 	statInfo.RunningTime = runTime
@@ -55,7 +59,7 @@ func RouterInfo() *vmodel.Stat {
 	//	boot time
 	bootTime, err := utils.RunBash(cmds.ScriptBootTime)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptBootTime] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptBootTime] 执行失败 [%v]", err)
 		bootTime = ""
 	}
 	statInfo.BootTime = bootTime
@@ -63,7 +67,7 @@ func RouterInfo() *vmodel.Stat {
 	//	now time
 	nowTime, err := utils.RunBash(cmds.ScriptTimeNow)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptTimeNow] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptTimeNow] 执行失败 [%v]", err)
 		nowTime = rose.TNowDateTime()
 	}
 	statInfo.NowTime = nowTime
@@ -71,11 +75,11 @@ func RouterInfo() *vmodel.Stat {
 	return statInfo
 }
 
-func RouterRestart() error {
+func (s *Router) RouterRestart() error {
 
 	go func() {
 		if _, err := utils.RunBash(cmds.ScriptReboot); err != nil {
-			global.GXLog.Errorf("shell 脚本 [ScriptReboot] 执行失败 [%v]", err)
+			s.XLog.Errorf("shell 脚本 [ScriptReboot] 执行失败 [%v]", err)
 		}
 	}()
 

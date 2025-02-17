@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	GLevelDB *rleveldb.LevelDB
-	GXLog    *xlog.Log
-	GEConfig *config.EConfig
+	// GLevelDB *rleveldb.LevelDB
+	// GXLog    *xlog.Log
+	// GEConfig *config.EConfig
 )

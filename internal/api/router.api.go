@@ -11,12 +11,13 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/config/vars"
-	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/pkg/response"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
 
 type Router struct {
+	XLog *xlogx.XLogSvc
 }
 
 func (a *Router) RouterInfo(c *fiber.Ctx) error {
@@ -27,20 +28,20 @@ func (a *Router) RouterInfo(c *fiber.Ctx) error {
 func (a *Router) RouterStatus(c *fiber.Ctx) error {
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
-		global.GXLog.Errorf("解析 body 参数操作异常", err)
+		a.XLog.Errorf("解析 body 参数操作异常", err)
 		return response.Fail(c, "Invalid request body")
 	}
 
-	global.GXLog.Info(data)
+	a.XLog.Info(data)
 
 	if status, ok := data[vars.RouterStatus]; ok && status == vars.RouterStsRestart {
-		global.GXLog.Infof("status %v", status)
+		a.XLog.Infof("status %v", status)
 		if err := service.RouterRestart(); err != nil {
-			global.GXLog.Errorf("RouterStatus error [%v]", err)
+			a.XLog.Errorf("RouterStatus error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else {
-		global.GXLog.Error("参数错误")
+		a.XLog.Error("参数错误")
 		return response.Fail(c, "参数错误")
 	}
 

@@ -11,7 +11,6 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/config/vars"
-	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/pkg/response"
 	"github.com/leafney/whisky/pkg/xlogx"
@@ -35,32 +34,32 @@ func (a *YAcd) YacdClashAction(c *fiber.Ctx) error {
 
 	var data map[string]string
 	if err := c.Bind().JSON(&data); err != nil {
-		global.GXLog.Errorf("解析 body 参数操作异常", err)
+		a.XLog.Errorf("解析 body 参数操作异常", err)
 		return response.Fail(c, "Invalid request body")
 	}
 
-	global.GXLog.Info(data)
+	a.XLog.Info(data)
 
 	if mode, ok := data[vars.ClashMode]; ok {
-		global.GXLog.Infof("mode %v", mode)
+		a.XLog.Infof("mode %v", mode)
 		if err := service.YacdClashMode(mode); err != nil {
-			global.GXLog.Errorf("ClashMode error [%v]", err)
+			a.XLog.Errorf("ClashMode error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else if swt, ok := data[vars.ClashSwitch]; ok {
-		global.GXLog.Infof("switch %v", swt)
+		a.XLog.Infof("switch %v", swt)
 		if err := service.YacdClashSwitch(swt); err != nil {
-			global.GXLog.Errorf("ClashSwitch error [%v]", err)
+			a.XLog.Errorf("ClashSwitch error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else if lan, ok := data[vars.ClashLan]; ok {
-		global.GXLog.Infof("lan %v", lan)
+		a.XLog.Infof("lan %v", lan)
 		if err := service.YacdClashAllowLan(lan); err != nil {
-			global.GXLog.Errorf("ClashLan error [%v]", err)
+			a.XLog.Errorf("ClashLan error [%v]", err)
 			return response.Fail(c, err.Error())
 		}
 	} else {
-		global.GXLog.Error("参数错误")
+		a.XLog.Error("参数错误")
 		return response.Fail(c, "参数错误")
 	}
 

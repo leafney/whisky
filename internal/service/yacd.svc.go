@@ -11,19 +11,27 @@ package service
 import (
 	"errors"
 	"fmt"
+
+	rleveldb "github.com/leafney/rose-leveldb"
+
 	"github.com/leafney/rose"
 	"github.com/leafney/whisky/config/cache"
 	"github.com/leafney/whisky/config/vars"
-	"github.com/leafney/whisky/global"
 	"github.com/leafney/whisky/pkg/cmds"
 	"github.com/leafney/whisky/pkg/utils"
+	"github.com/leafney/whisky/pkg/xlogx"
 
 	"github.com/leafney/whisky/internal/vmodel"
 
 	"github.com/tidwall/gjson"
 )
 
-func YacdInfo() (*vmodel.Clash, error) {
+type YAcd struct {
+	XLog    *xlogx.XLogSvc
+	LevelDB *rleveldb.LevelDB
+}
+
+func (s *YAcd) YacdInfo() (*vmodel.Clash, error) {
 
 	port := ""
 	// 优先从命令行参数中获取
@@ -36,13 +44,13 @@ func YacdInfo() (*vmodel.Clash, error) {
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdStats)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptYacdStats] 载入失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptYacdStats] 载入失败 [%v]", err)
 		return nil, err
 	}
 
 	res, err := utils.RunBashFile(fPath, port)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptYacdStats] 执行失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptYacdStats] 执行失败 [%v]", err)
 		return nil, err
 	}
 
@@ -59,8 +67,8 @@ func YacdInfo() (*vmodel.Clash, error) {
 		clashInfo.AllowLan = data.Get("allow-lan").Bool()
 
 		//	记录下当前最新的 mode 状态
-		if err := global.GLevelDB.SetS(cache.KFCYacdMode, rose.StrToLower(mode)); err != nil {
-			global.GXLog.Errorf("设置缓存 [KFCYacdMode] 操作异常 [%v]", err)
+		if err := s.LevelDB.SetS(cache.KFCYacdMode, rose.StrToLower(mode)); err != nil {
+			s.XLog.Errorf("设置缓存 [KFCYacdMode] 操作异常 [%v]", err)
 		}
 	} else {
 		err2 = fmt.Errorf("获取 clash 信息失败")
@@ -69,7 +77,7 @@ func YacdInfo() (*vmodel.Clash, error) {
 	return clashInfo, err2
 }
 
-func YacdClashMode(mode string) error {
+func (s *YAcd) YacdClashMode(mode string) error {
 
 	port := ""
 	// 优先从命令行参数中获取
@@ -82,7 +90,7 @@ func YacdClashMode(mode string) error {
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
 	if err != nil {
-		global.GXLog.Errorf("shell 脚本 [ScriptYacdStats] 载入失败 [%v]", err)
+		s.XLog.Errorf("shell 脚本 [ScriptYacdStats] 载入失败 [%v]", err)
 		return err
 	}
 
@@ -93,7 +101,7 @@ func YacdClashMode(mode string) error {
 			return err
 		}
 
-		global.GXLog.Infof("rule 返回的状态码 [%v]", res)
+		s.XLog.Infof("rule 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -103,7 +111,7 @@ func YacdClashMode(mode string) error {
 			return err
 		}
 
-		global.GXLog.Infof("direct 返回的状态码 [%v]", res)
+		s.XLog.Infof("direct 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -113,7 +121,7 @@ func YacdClashMode(mode string) error {
 			return err
 		}
 
-		global.GXLog.Infof("global 返回的状态码 [%v]", res)
+		s.XLog.Infof("global 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -122,14 +130,14 @@ func YacdClashMode(mode string) error {
 	}
 
 	// mode 切换成功，记录下最新的 mode 值，用于自动切换
-	if err := global.GLevelDB.SetS(cache.KFCYacdMode, mode); err != nil {
-		global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
+	if err := s.LevelDB.SetS(cache.KFCYacdMode, mode); err != nil {
+		s.XLog.Errorf("KFCYacdMode set error [%v]", err)
 	}
 
 	return nil
 }
 
-func YacdClashSwitch(swt string) error {
+func (s *YAcd) YacdClashSwitch(swt string) error {
 
 	port := ""
 	// 优先从命令行参数中获取
@@ -142,7 +150,7 @@ func YacdClashSwitch(swt string) error {
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdMode)
 	if err != nil {
-		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		s.XLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
 		return err
 	}
 
@@ -153,7 +161,7 @@ func YacdClashSwitch(swt string) error {
 			return err
 		}
 
-		global.GXLog.Infof("rule 返回的状态码 [%v]", res)
+		s.XLog.Infof("rule 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -163,7 +171,7 @@ func YacdClashSwitch(swt string) error {
 			return err
 		}
 
-		global.GXLog.Infof("direct 返回的状态码 [%v]", res)
+		s.XLog.Infof("direct 返回的状态码 [%v]", res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
@@ -171,7 +179,7 @@ func YacdClashSwitch(swt string) error {
 		//	自动切换，根据上次的 mode 值，自动判断当前的状态，且只在 rule 和 direct 之间切换；如果是 global 则当做 rule 处理
 
 		// 从缓存中获取上一次的mode状态
-		lastMode, _ := global.GLevelDB.GetS(cache.KFCYacdMode)
+		lastMode, _ := s.LevelDB.GetS(cache.KFCYacdMode)
 		nextMode := ""
 		if rose.StrEqualFold(lastMode, vars.ClashModeDirect) {
 			// 如果上一次为 direct，则新状态为 rule
@@ -186,22 +194,22 @@ func YacdClashSwitch(swt string) error {
 			return err
 		}
 
-		global.GXLog.Infof("mode [%v] 返回的状态码 [%v]", nextMode, res)
+		s.XLog.Infof("mode [%v] 返回的状态码 [%v]", nextMode, res)
 
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
 
 		// 操作成功，记录下最新的 mode 值
-		if err := global.GLevelDB.SetS(cache.KFCYacdMode, nextMode); err != nil {
-			global.GXLog.Errorf("KFCYacdMode set error [%v]", err)
+		if err := s.LevelDB.SetS(cache.KFCYacdMode, nextMode); err != nil {
+			s.XLog.Errorf("KFCYacdMode set error [%v]", err)
 		}
 	}
 
 	return nil
 }
 
-func YacdClashAllowLan(lan string) error {
+func (s *YAcd) YacdClashAllowLan(lan string) error {
 	port := ""
 	// 优先从命令行参数中获取
 	ePort := "" //global.GEConfig.YacdPort
@@ -213,7 +221,7 @@ func YacdClashAllowLan(lan string) error {
 
 	fPath, err := utils.LoadByteBashFile(cmds.ScriptYacdAllowLan)
 	if err != nil {
-		global.GXLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
+		s.XLog.Errorf("读取 shell 脚本文件失败 [%v]", err)
 		return err
 	}
 
@@ -224,7 +232,7 @@ func YacdClashAllowLan(lan string) error {
 			return err
 		}
 
-		global.GXLog.Infof("allowLan [%v] 返回的状态码 [%v]", lan, res)
+		s.XLog.Infof("allowLan [%v] 返回的状态码 [%v]", lan, res)
 		if !rose.StrEqualFold(res, vars.ClashStatusCode) {
 			return fmt.Errorf("操作异常，返回的状态码为 [%v]", res)
 		}
