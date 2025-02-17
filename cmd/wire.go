@@ -1,3 +1,6 @@
+//go:build wireinject
+// +build wireinject
+
 /**
  * @Author:      leafney
  * @GitHub:      https://github.com/leafney

@@ -17,6 +17,7 @@ import (
 )
 
 var AppSet = wire.NewSet(
+	config.NewConfig,
 	xlogx.NewXLogSvc,
 	leveldbx.NewLevelDBSvc,
 	internal.Set,

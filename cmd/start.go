@@ -11,12 +11,13 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func StartServer(injector *Injector, port string, quit chan struct{}) {

@@ -1,0 +1,6 @@
+[Log]
+XEnable = true
+XDebug = true
+
+[LevelDB]
+Path = "data/.cache"

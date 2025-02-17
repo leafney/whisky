@@ -12,12 +12,11 @@ import (
 	"errors"
 	"fmt"
 
-	rleveldb "github.com/leafney/rose-leveldb"
-
 	"github.com/leafney/rose"
 	"github.com/leafney/whisky/config/cache"
 	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/pkg/cmds"
+	"github.com/leafney/whisky/pkg/leveldbx"
 	"github.com/leafney/whisky/pkg/utils"
 	"github.com/leafney/whisky/pkg/xlogx"
 
@@ -28,7 +27,7 @@ import (
 
 type YAcd struct {
 	XLog    *xlogx.XLogSvc
-	LevelDB *rleveldb.LevelDB
+	LevelDB *leveldbx.LevelDBSvc
 }
 
 func (s *YAcd) YacdInfo() (*vmodel.Clash, error) {
