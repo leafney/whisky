@@ -1,7 +1,7 @@
-package version
+package versionx
 
-// Info 版本信息结构体
-type Info struct {
+// InfoSvc 版本信息结构体
+type InfoSvc struct {
 	Version   string
 	GitCommit string
 	BuildTime string
@@ -9,16 +9,16 @@ type Info struct {
 
 var (
 	// VersionInfo 全局版本信息实例
-	VersionInfo = &Info{}
+	VersionInfo = &InfoSvc{}
 )
 
 // NewInfo 提供一个构造函数用于 wire 注入
-func NewInfo() *Info {
+func NewInfoSvc() *InfoSvc {
 	return VersionInfo
 }
 
 // GetVersion 获取版本信息
-func GetVersion() map[string]string {
+func (v *InfoSvc) GetVersion() map[string]string {
 	return map[string]string{
 		"version":    VersionInfo.Version,
 		"git_commit": VersionInfo.GitCommit,

@@ -15,7 +15,7 @@ import (
 	"runtime"
 
 	"github.com/leafney/whisky/cmd"
-	"github.com/leafney/whisky/pkg/version"
+	"github.com/leafney/whisky/pkg/versionx"
 	"github.com/spf13/pflag"
 )
 
@@ -33,9 +33,10 @@ var (
 )
 
 func init() {
-	version.VersionInfo.Version = Version
-	version.VersionInfo.GitCommit = GitCommit
-	version.VersionInfo.BuildTime = BuildTime
+	// 初始化版本信息
+	versionx.VersionInfo.Version = Version
+	versionx.VersionInfo.GitCommit = GitCommit
+	versionx.VersionInfo.BuildTime = BuildTime
 }
 
 func main() {
