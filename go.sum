@@ -34,6 +34,7 @@ github.com/leafney/rose v0.12.1/go.mod h1:Rj7sCjbI842a3f00z28P+jwAS0oUcnyAKXy/Fl
 github.com/leafney/rose v0.13.1/go.mod h1:97J1GRrBGNZ5FjoU0L+kgxaN/wbCMnkmnrZ0nfbD+aE=
 github.com/leafney/rose-leveldb v0.3.0 h1:zOPjyMWoOS7t0WFXUieMB4SGiPakpsiaA7ruBRYQh0s=
 github.com/leafney/rose-leveldb v0.3.0/go.mod h1:j8glUqDeQ0UmuJ7Lvddb/LfTW/Qdkftm7VG6O79k3ik=
+github.com/leafney/rose-leveldb v0.4.1/go.mod h1:cvMf0zRN7nt003LK6mXlokoBK6Rzh6kFv1nZZwnTctk=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=

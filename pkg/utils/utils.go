@@ -13,7 +13,8 @@ import (
 	"fmt"
 	"github.com/klauspost/compress/gzip"
 	"github.com/leafney/rose"
-	"github.com/leafney/whisky/global/vars"
+	"github.com/leafney/whisky/config/vars"
+
 	"io"
 	"os"
 	"os/exec"
@@ -90,7 +91,7 @@ func LoadByteBashFile(shellName []byte) (string, error) {
 	}
 
 	// 创建文件保存目录
-	if err := rose.DEnsurePathExist(filePath); err != nil {
+	if err := rose.DirExistsEnsure(filePath); err != nil {
 		return "", err
 	}
 

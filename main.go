@@ -9,10 +9,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/leafney/whisky/cmd/core"
-	"github.com/leafney/whisky/cmd/run"
-	flag "github.com/spf13/pflag"
+	"github.com/leafney/whisky/cmd"
+	"github.com/spf13/pflag"
+	"log"
 	"runtime"
 )
 
@@ -30,16 +31,16 @@ var (
 )
 
 func main() {
-	flag.BoolVarP(&h, "help", "h", false, "help")
-	flag.BoolVarP(&h, "debug", "d", false, "whether to output debug level logs")
-	flag.StringVarP(&p, "port", "p", "8080", "server port")
-	flag.StringVarP(&y, "yacd", "y", "9999", "yacd port")
-	flag.StringVarP(&w, "webhook", "w", "", "webhook url")
-	flag.BoolVarP(&v, "version", "v", false, "version")
-	flag.Parse()
+	pflag.BoolVarP(&h, "help", "h", false, "help")
+	pflag.BoolVarP(&d, "debug", "d", false, "whether to output debug level logs")
+	pflag.StringVarP(&p, "port", "p", "8080", "server port")
+	pflag.StringVarP(&y, "yacd", "y", "9999", "yacd port")
+	pflag.StringVarP(&w, "webhook", "w", "", "webhook url")
+	pflag.BoolVarP(&v, "version", "v", false, "version")
+	pflag.Parse()
 
 	if h {
-		flag.PrintDefaults()
+		pflag.PrintDefaults()
 	} else if v {
 		// 输出版本信息
 		fmt.Println("Version:      " + Version)
@@ -49,26 +50,41 @@ func main() {
 		fmt.Println("Go version:   " + runtime.Version())
 		fmt.Println("OS/Arch:      " + runtime.GOOS + "/" + runtime.GOARCH)
 	} else {
-		// 基础服务
-		core.InitXLog(d)
-		//core.InitConfig()
-		core.InitEConfig(y, w)
-		//core.InitMsqQueue()
-		core.InitShellClean()
+		//// 基础服务
+		//core.InitXLog(d)
+		////core.InitConfig()
+		//core.InitEConfig(y, w)
+		////core.InitMsqQueue()
+		//core.InitShellClean()
+		//
+		//// 用于退出的通道
+		//quitChan := make(chan struct{})
+		//// 相关服务
+		////core.InitLog(quitChan)
+		////core.InitMongo(quitChan)
+		////core.InitRedis(quitChan)
+		////core.InitCron(quitChan)
+		////core.InitCache(quitChan)
+		////core.InitNotify()
+		//core.InitLevelDB(quitChan)
+		//// 异步任务
+		////core.InitQueue()
+		//// web服务
+		//run.Start(p, quitChan)
 
 		// 用于退出的通道
 		quitChan := make(chan struct{})
-		// 相关服务
-		//core.InitLog(quitChan)
-		//core.InitMongo(quitChan)
-		//core.InitRedis(quitChan)
-		//core.InitCron(quitChan)
-		//core.InitCache(quitChan)
-		//core.InitNotify()
-		core.InitLevelDB(quitChan)
-		// 异步任务
-		//core.InitQueue()
-		// web服务
-		run.Start(p, quitChan)
+		injector, callback, err := cmd.BuildInjector(quitChan)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer callback()
+
+		ctx := context.Background()
+		if err := injector.R.Init(ctx); err != nil {
+			log.Fatalf("初始化异常 %v", err)
+		}
+
+		cmd.StartServer(injector, p, quitChan)
 	}
 }

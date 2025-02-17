@@ -11,10 +11,16 @@ package cmd
 import (
 	"github.com/google/wire"
 	"github.com/leafney/whisky/config"
+	"github.com/leafney/whisky/internal"
+	"github.com/leafney/whisky/pkg/leveldbx"
 	"github.com/leafney/whisky/pkg/xlogx"
 )
 
-var AppSet = wire.NewSet()
+var AppSet = wire.NewSet(
+	xlogx.NewXLogSvc,
+	leveldbx.NewLevelDBSvc,
+	internal.Set,
+)
 
 type Injector struct {
 	L *xlogx.XLogSvc

@@ -12,6 +12,7 @@ type Config struct {
 	YacdPort string `json:"yacd_port"`
 	WebHook  string `json:"web_hook"`
 	Log      Log
+	LevelDB  LevelDB
 }
 
 type (
@@ -19,5 +20,9 @@ type (
 		XEnable bool `koanf:"xenable" default:"true"`
 		XDebug  bool `default:"true"`
 		XLevel  string
+	}
+
+	LevelDB struct {
+		Path string `default:"data/.cache"`
 	}
 )
