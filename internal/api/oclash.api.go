@@ -26,11 +26,11 @@ type OClash struct {
 func (a *OClash) OClashAction(c *fiber.Ctx) error {
 	var data map[string]string
 	if err := parsex.ParseAll(c, &data); err != nil {
-		a.XLog.Errorf("解析 body 参数操作异常", err)
+		a.XLog.Errorf("解析 body 参数操作异常 [%v]", err)
 		return response.Fail(c, "Invalid request body")
 	}
 
-	a.XLog.Info(data)
+	a.XLog.Infof("body params %v", data)
 
 	if status, ok := data[vars.ClashStatus]; ok {
 		a.XLog.Infof("status %v", status)
@@ -39,7 +39,7 @@ func (a *OClash) OClashAction(c *fiber.Ctx) error {
 			return response.Fail(c, err.Error())
 		}
 	} else {
-		a.XLog.Error("参数错误")
+		a.XLog.Errorf("参数错误")
 		return response.Fail(c, "参数错误")
 	}
 

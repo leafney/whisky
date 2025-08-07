@@ -32,13 +32,6 @@ var (
 	BuildTime = "2024-07-06 13:04:30"
 )
 
-func init() {
-	// 初始化版本信息
-	versionx.VersionInfo.Version = Version
-	versionx.VersionInfo.GitCommit = GitCommit
-	versionx.VersionInfo.BuildTime = BuildTime
-}
-
 func main() {
 	pflag.BoolVarP(&h, "help", "h", false, "help")
 	pflag.BoolVarP(&d, "debug", "d", false, "whether to output debug level logs")
@@ -47,6 +40,9 @@ func main() {
 	pflag.StringVarP(&w, "webhook", "w", "", "webhook url")
 	pflag.BoolVarP(&v, "version", "v", false, "version")
 	pflag.Parse()
+
+	// 初始化版本信息
+	versionx.SetVersion(Version, GitCommit, BuildTime)
 
 	if h {
 		pflag.PrintDefaults()
@@ -59,27 +55,6 @@ func main() {
 		fmt.Println("Go version:   " + runtime.Version())
 		fmt.Println("OS/Arch:      " + runtime.GOOS + "/" + runtime.GOARCH)
 	} else {
-		//// 基础服务
-		//core.InitXLog(d)
-		////core.InitConfig()
-		//core.InitEConfig(y, w)
-		////core.InitMsqQueue()
-		//core.InitShellClean()
-		//
-		//// 用于退出的通道
-		//quitChan := make(chan struct{})
-		//// 相关服务
-		////core.InitLog(quitChan)
-		////core.InitMongo(quitChan)
-		////core.InitRedis(quitChan)
-		////core.InitCron(quitChan)
-		////core.InitCache(quitChan)
-		////core.InitNotify()
-		//core.InitLevelDB(quitChan)
-		//// 异步任务
-		////core.InitQueue()
-		//// web服务
-		//run.Start(p, quitChan)
 
 		// 用于退出的通道
 		quitChan := make(chan struct{})
