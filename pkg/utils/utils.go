@@ -10,7 +10,9 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+
 	"github.com/klauspost/compress/gzip"
 	"github.com/leafney/rose"
 	"github.com/leafney/whisky/config/vars"
@@ -32,8 +34,29 @@ func RunScript(script string, args ...string) (string, error) {
 	return string(output), nil
 }
 
+func RunScriptCtx(ctx context.Context, script string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "/bin/sh", script)
+	cmd.Args = append(cmd.Args, args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
 func RunBash(shellStr string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", shellStr)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+// RunBashCtx 带上下文与超时的 shell 执行
+// 推荐用于服务端接口的外部脚本执行，支持取消与超时。
+func RunBashCtx(ctx context.Context, shellStr string) (string, error) {
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", shellStr)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -71,6 +94,16 @@ func RunBash(shellStr string) (string, error) {
 func RunBashFile(shellFilePath string, args ...string) (string, error) {
 	command := fmt.Sprintf("%s %s", shellFilePath, strings.Join(args, " "))
 	cmd := exec.Command("/bin/sh", "-c", command)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+func RunBashFileCtx(ctx context.Context, shellFilePath string, args ...string) (string, error) {
+	command := fmt.Sprintf("%s %s", shellFilePath, strings.Join(args, " "))
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", command)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err

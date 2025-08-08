@@ -15,6 +15,7 @@ require (
 	github.com/leafney/rose-leveldb v0.4.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/gjson v1.17.1
+	golang.org/x/sync v0.10.0
 )
 
 require (
