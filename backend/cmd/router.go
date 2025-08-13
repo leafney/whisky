@@ -10,9 +10,12 @@ package cmd
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/leafney/whisky/internal/api"
+	"github.com/leafney/whisky/web"
 )
 
 type DefRouter struct {
@@ -67,12 +70,27 @@ func (r *DefRouter) SetupRoutes(app *fiber.App, inj *Injector) {
 	app.Get("/yacd", r.YacdApi.YacdClashInfo)
 	app.Post("/yacd", r.YacdApi.YacdClashAction)
 
-	//// webui
-	//uiDist, err := fs.Sub(web.UiStatic, "dist")
-	//if err != nil {
-	//	inj.L.Fatalf("static dir load error [%v]", err)
-	//}
-	//app.Use("/", filesystem.New(filesystem.Config{
-	//	Root: http.FS(uiDist),
-	//}))
+	// webui
+	uiDist, err := web.GetDistFS()
+	if err != nil {
+		inj.L.Fatalf("static dir load error [%v]", err)
+	}
+	app.Use("/", filesystem.New(filesystem.Config{
+		Root: http.FS(uiDist),
+	}))
+
+	// 处理所有未匹配的请求，返回 index.html
+	app.Get("/*", func(c *fiber.Ctx) error {
+		// 从嵌入的文件系统中打开 index.html
+		indexFile, err := web.GetDistFSRoot().Open("dist/index.html")
+		if err != nil {
+			println("打开 index.html 失败:", err.Error())
+			return c.Status(fiber.StatusInternalServerError).SendString("无法加载 index.html")
+		}
+		defer indexFile.Close()
+
+		// 设置 MIME 类型并发送文件流
+		c.Type("html")
+		return c.SendStream(indexFile)
+	})
 }
