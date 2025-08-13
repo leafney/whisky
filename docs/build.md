@@ -1,8 +1,28 @@
-# build
+# 构建说明
 
-## 手动编译：
+## 使用 Makefile 构建（推荐）
+
+项目提供了完整的 Makefile 支持，详细说明请参考 [Makefile 命令文档](./makefile.md)。
+
+### 快速构建
 
 ```shell
+# 构建本地版本
+make build
+
+# 构建 Linux ARM64 版本
+make build-arm64
+
+# 构建所有平台版本
+make release
+```
+
+## 手动编译（高级用法）
+
+如需手动编译，可以参考以下命令：
+
+```shell
+# 构建 Linux ARM64 版本
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o whisky main.go
 ```
 
