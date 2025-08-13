@@ -49,6 +49,11 @@ func StartServer(injector *Injector, port string, quit chan struct{}) {
 		// 关闭通道
 		close(quit)
 
+		// 优雅关闭路由相关服务
+		if err := injector.R.Shutdown(); err != nil {
+			injector.L.Errorf("[Router] Shutdown error [%v]", err)
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := f.ShutdownWithContext(ctx); err != nil {

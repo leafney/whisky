@@ -9,6 +9,8 @@ package cmd
 import (
 	"github.com/leafney/whisky/config"
 	"github.com/leafney/whisky/internal/api"
+	"github.com/leafney/whisky/internal/biz"
+	"github.com/leafney/whisky/internal/dao"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/pkg/leveldbx"
 	"github.com/leafney/whisky/pkg/versionx"
@@ -30,11 +32,26 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	router := &service.Router{
 		XLog: xLogSvc,
 	}
-	apiRouter := &api.Router{
-		XLog:      xLogSvc,
-		RouterSvc: router,
-	}
 	levelDBSvc := leveldbx.NewLevelDBSvc(configConfig, xLogSvc, stop)
+	monitor := &dao.Monitor{
+		XLog:    xLogSvc,
+		LevelDB: levelDBSvc,
+	}
+	bizMonitor := &biz.Monitor{
+		XLog:       xLogSvc,
+		Config:     configConfig,
+		MonitorDao: monitor,
+	}
+	networkMonitor := &service.NetworkMonitor{
+		XLog:       xLogSvc,
+		Config:     configConfig,
+		MonitorBiz: bizMonitor,
+	}
+	apiRouter := &api.Router{
+		XLog:              xLogSvc,
+		RouterSvc:         router,
+		NetworkMonitorSvc: networkMonitor,
+	}
 	yAcd := &service.YAcd{
 		XLog:    xLogSvc,
 		LevelDB: levelDBSvc,
@@ -57,11 +74,12 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		SCrashSvc: sCrash,
 	}
 	defRouter := DefRouter{
-		HomeApi:    home,
-		RouterApi:  apiRouter,
-		YacdApi:    apiYAcd,
-		NetWorkApi: apiNetWork,
-		SCrashApi:  apiSCrash,
+		HomeApi:           home,
+		RouterApi:         apiRouter,
+		YacdApi:           apiYAcd,
+		NetWorkApi:        apiNetWork,
+		SCrashApi:         apiSCrash,
+		NetworkMonitorSvc: networkMonitor,
 	}
 	injector := &Injector{
 		L: xLogSvc,

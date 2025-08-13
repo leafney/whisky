@@ -11,6 +11,7 @@ package internal
 import (
 	"github.com/google/wire"
 	"github.com/leafney/whisky/internal/api"
+	"github.com/leafney/whisky/internal/biz"
 	"github.com/leafney/whisky/internal/dao"
 	"github.com/leafney/whisky/internal/service"
 )
@@ -35,6 +36,11 @@ var Set = wire.NewSet(
 	//
 	wire.Struct(new(api.YAcd), "*"),
 	// wire.Struct(new(dao.YAcd), "*"),
+
+	// Network Monitor - 网络监控相关
+	wire.Struct(new(dao.Monitor), "*"),
+	wire.Struct(new(biz.Monitor), "*"),
+	wire.Struct(new(service.NetworkMonitor), "*"),
 
 	wire.Struct(new(service.NetWork), "*"),
 	wire.Struct(new(service.Router), "*"),

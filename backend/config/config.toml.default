@@ -4,3 +4,15 @@ XDebug = true
 
 [LevelDB]
 Path = "data/.cache"
+
+[NetworkMonitor]
+Enable = false
+CheckInterval = 300
+FailCheckInterval = 60
+CheckTimeout = 10
+TestHosts = ["8.8.8.8", "114.114.114.114", "1.1.1.1", "223.5.5.5", "www.baidu.com"]
+FailThreshold = 3
+FailHostThreshold = 3
+MaxRestarts = 5
+RestartWindow = 24
+CooldownPeriod = 30

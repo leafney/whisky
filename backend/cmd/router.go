@@ -15,15 +15,17 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/leafney/whisky/internal/api"
+	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/web"
 )
 
 type DefRouter struct {
-	HomeApi    *api.Home
-	RouterApi  *api.Router
-	YacdApi    *api.YAcd
-	NetWorkApi *api.NetWork
-	SCrashApi  *api.SCrash
+	HomeApi           *api.Home
+	RouterApi         *api.Router
+	YacdApi           *api.YAcd
+	NetWorkApi        *api.NetWork
+	SCrashApi         *api.SCrash
+	NetworkMonitorSvc *service.NetworkMonitor
 }
 
 func (r *DefRouter) AutoMigrate() error {
@@ -31,6 +33,18 @@ func (r *DefRouter) AutoMigrate() error {
 }
 
 func (r *DefRouter) AutoStart(ctx context.Context) error {
+	// 初始化并自动启动网络监控（如果配置启用）
+	if r.NetworkMonitorSvc != nil {
+		// 先初始化调度器
+		if err := r.NetworkMonitorSvc.Initialize(); err != nil {
+			return err
+		}
+
+		// 自动启动监控
+		if err := r.NetworkMonitorSvc.AutoStart(ctx); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -42,6 +56,18 @@ func (r *DefRouter) Init(ctx context.Context) error {
 	}
 	if err := r.AutoStart(ctx); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// Shutdown 优雅关闭
+func (r *DefRouter) Shutdown() error {
+	// 关闭网络监控服务
+	if r.NetworkMonitorSvc != nil {
+		if err := r.NetworkMonitorSvc.Shutdown(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -59,6 +85,10 @@ func (r *DefRouter) SetupRoutes(app *fiber.App, inj *Injector) {
 	// router
 	app.Get("/router", r.RouterApi.RouterInfo)
 	app.Post("/router", r.RouterApi.RouterStatus)
+
+	// network monitor
+	app.Get("/router/monitor", r.RouterApi.NetworkMonitorStatus)
+	app.Post("/router/monitor", r.RouterApi.NetworkMonitorControl)
 
 	// network
 	app.Get("/network", r.NetWorkApi.NetWorkInfo)

@@ -12,14 +12,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/config/vars"
 	"github.com/leafney/whisky/internal/service"
+	"github.com/leafney/whisky/internal/vmodel"
 	"github.com/leafney/whisky/pkg/parsex"
 	"github.com/leafney/whisky/pkg/response"
 	"github.com/leafney/whisky/pkg/xlogx"
 )
 
 type Router struct {
-	XLog      *xlogx.XLogSvc
-	RouterSvc *service.Router
+	XLog              *xlogx.XLogSvc
+	RouterSvc         *service.Router
+	NetworkMonitorSvc *service.NetworkMonitor
 }
 
 func (a *Router) RouterInfo(c *fiber.Ctx) error {
@@ -45,6 +47,73 @@ func (a *Router) RouterStatus(c *fiber.Ctx) error {
 	} else {
 		a.XLog.Error("参数错误")
 		return response.Fail(c, "参数错误")
+	}
+
+	return response.Ok(c)
+}
+
+// NetworkMonitorStatus 获取网络监控状态
+func (a *Router) NetworkMonitorStatus(c *fiber.Ctx) error {
+	status, err := a.NetworkMonitorSvc.GetDetailedStatus()
+	if err != nil {
+		a.XLog.Errorf("获取网络监控状态失败: %v", err)
+		return response.Fail(c, "获取监控状态失败")
+	}
+	return response.OkWithData(c, status)
+}
+
+// NetworkMonitorControl 控制网络监控
+func (a *Router) NetworkMonitorControl(c *fiber.Ctx) error {
+	var req vmodel.NetworkMonitorRequest
+	if err := parsex.ParseAll(c, &req); err != nil {
+		a.XLog.Errorf("解析网络监控请求参数失败: %v", err)
+		return response.Fail(c, "请求参数无效")
+	}
+
+	a.XLog.Infof("网络监控控制请求: %s", req.Action)
+
+	switch req.Action {
+	case "start":
+		if err := a.NetworkMonitorSvc.StartMonitor(req.Config); err != nil {
+			a.XLog.Errorf("启动网络监控失败: %v", err)
+			return response.Fail(c, err.Error())
+		}
+		a.XLog.Info("网络监控已启动")
+
+	case "stop":
+		if err := a.NetworkMonitorSvc.StopMonitor(); err != nil {
+			a.XLog.Errorf("停止网络监控失败: %v", err)
+			return response.Fail(c, err.Error())
+		}
+		a.XLog.Info("网络监控已停止")
+
+	case "restart":
+		if err := a.NetworkMonitorSvc.RestartMonitor(req.Config); err != nil {
+			a.XLog.Errorf("重启网络监控失败: %v", err)
+			return response.Fail(c, err.Error())
+		}
+		a.XLog.Info("网络监控已重启")
+
+	case "reset":
+		if err := a.NetworkMonitorSvc.ResetMonitor(); err != nil {
+			a.XLog.Errorf("重置网络监控失败: %v", err)
+			return response.Fail(c, err.Error())
+		}
+		a.XLog.Info("网络监控状态已重置")
+
+	case "update_config":
+		if req.Config == nil {
+			return response.Fail(c, "配置参数不能为空")
+		}
+		if err := a.NetworkMonitorSvc.UpdateMonitorConfig(req.Config); err != nil {
+			a.XLog.Errorf("更新网络监控配置失败: %v", err)
+			return response.Fail(c, err.Error())
+		}
+		a.XLog.Info("网络监控配置已更新")
+
+	default:
+		a.XLog.Errorf("无效的监控操作: %s", req.Action)
+		return response.Fail(c, "无效的操作类型")
 	}
 
 	return response.Ok(c)
