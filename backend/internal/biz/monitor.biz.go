@@ -3,7 +3,7 @@
  * @GitHub:      https://github.com/leafney
  * @Project:     whisky
  * @Date:        2025-08-13
- * @Description: 网络监控业务逻辑层（基于定时任务）
+ * @Description: 网络监控业务逻辑层（纯检测逻辑）
  */
 
 package biz
@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-co-op/gocron/v2"
 	"github.com/leafney/whisky/config"
 	"github.com/leafney/whisky/internal/dao"
 	"github.com/leafney/whisky/internal/vmodel"
@@ -28,12 +27,6 @@ type Monitor struct {
 	XLog       *xlogx.XLogSvc
 	Config     *config.Config
 	MonitorDao *dao.Monitor
-
-	// 定时任务调度器
-	scheduler gocron.Scheduler
-	job       gocron.Job
-	mutex     sync.RWMutex
-	isRunning bool
 }
 
 // 全局监控状态（简化状态管理）
@@ -42,19 +35,6 @@ var (
 	monitorStats  *vmodel.NetworkMonitorStats
 	stateMutex    sync.RWMutex
 )
-
-// InitScheduler 初始化调度器
-func (b *Monitor) InitScheduler() error {
-	var err error
-	b.scheduler, err = gocron.NewScheduler()
-	if err != nil {
-		b.XLog.Errorf("创建调度器失败: %v", err)
-		return err
-	}
-
-	b.XLog.Info("网络监控调度器初始化成功")
-	return nil
-}
 
 // GetStatus 获取监控状态
 func (b *Monitor) GetStatus() (*vmodel.NetworkMonitorStatus, error) {
@@ -89,188 +69,8 @@ func (b *Monitor) GetStats() (*vmodel.NetworkMonitorStats, error) {
 	return monitorStats, nil
 }
 
-// Start 启动网络监控定时任务
-func (b *Monitor) Start(config *vmodel.NetworkMonitorConfig) error {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	if b.isRunning {
-		return fmt.Errorf("网络监控已在运行中")
-	}
-
-	// 初始化状态
-	if err := b.initializeStatus(config); err != nil {
-		return fmt.Errorf("初始化状态失败: %v", err)
-	}
-
-	// 创建定时任务
-	checkInterval := time.Duration(config.CheckInterval) * time.Second
-	job, err := b.scheduler.NewJob(
-		gocron.DurationJob(checkInterval),
-		gocron.NewTask(b.performNetworkCheck),
-		gocron.WithName("network_monitor"),
-		gocron.WithStartAt(gocron.WithStartImmediately()),
-	)
-
-	if err != nil {
-		b.XLog.Errorf("创建网络监控定时任务失败: %v", err)
-		return err
-	}
-
-	b.job = job
-	b.isRunning = true
-
-	// 更新状态
-	stateMutex.Lock()
-	monitorStatus.Enabled = true
-	monitorStatus.CurrentStatus = "running"
-	stateMutex.Unlock()
-
-	// 启动调度器
-	b.scheduler.Start()
-
-	// 保存状态
-	if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
-		b.XLog.Errorf("保存监控状态失败: %v", err)
-	}
-
-	b.XLog.Infof("网络监控定时任务已启动，检测间隔: %v", checkInterval)
-	return nil
-}
-
-// Stop 停止网络监控定时任务
-func (b *Monitor) Stop() error {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	if !b.isRunning {
-		return fmt.Errorf("网络监控未在运行")
-	}
-
-	// 停止定时任务
-	if b.job != nil {
-		if err := b.scheduler.RemoveJob(b.job.ID()); err != nil {
-			b.XLog.Errorf("移除定时任务失败: %v", err)
-		}
-		b.job = nil
-	}
-
-	b.isRunning = false
-
-	// 更新状态
-	stateMutex.Lock()
-	if monitorStatus != nil {
-		monitorStatus.Enabled = false
-		monitorStatus.CurrentStatus = "disabled"
-	}
-	stateMutex.Unlock()
-
-	// 保存状态
-	if monitorStatus != nil {
-		if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
-			b.XLog.Errorf("保存监控状态失败: %v", err)
-		}
-	}
-
-	b.XLog.Info("网络监控定时任务已停止")
-	return nil
-}
-
-// Restart 重启网络监控
-func (b *Monitor) Restart(config *vmodel.NetworkMonitorConfig) error {
-	if err := b.Stop(); err != nil {
-		b.XLog.Errorf("停止监控失败: %v", err)
-	}
-
-	// 等待一秒确保完全停止
-	time.Sleep(1 * time.Second)
-
-	return b.Start(config)
-}
-
-// Reset 重置监控状态
-func (b *Monitor) Reset() error {
-	stateMutex.Lock()
-	defer stateMutex.Unlock()
-
-	if monitorStatus != nil {
-		monitorStatus.ConsecutiveFails = 0
-		monitorStatus.TotalRestarts = 0
-		monitorStatus.RestartsInWindow = 0
-		monitorStatus.LastRestartTime = nil
-		now := time.Now()
-		monitorStatus.WindowStartTime = &now
-
-		// 保存状态
-		if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
-			return fmt.Errorf("保存重置状态失败: %v", err)
-		}
-	}
-
-	// 重置统计
-	if monitorStats != nil {
-		monitorStats.TotalChecks = 0
-		monitorStats.SuccessfulChecks = 0
-		monitorStats.FailedChecks = 0
-		monitorStats.SuccessRate = 0.0
-
-		if err := b.MonitorDao.SaveMonitorStats(monitorStats); err != nil {
-			return fmt.Errorf("保存重置统计失败: %v", err)
-		}
-	}
-
-	b.XLog.Info("网络监控状态已重置")
-	return nil
-}
-
-// UpdateConfig 更新配置并重新调度任务
-func (b *Monitor) UpdateConfig(config *vmodel.NetworkMonitorConfig) error {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	stateMutex.Lock()
-	if monitorStatus != nil {
-		monitorStatus.Config = *config
-	}
-	stateMutex.Unlock()
-
-	// 保存配置
-	if err := b.MonitorDao.SaveMonitorConfig(config); err != nil {
-		return fmt.Errorf("保存配置失败: %v", err)
-	}
-
-	if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
-		return fmt.Errorf("保存状态失败: %v", err)
-	}
-
-	// 如果正在运行，重新创建任务以应用新配置
-	if b.isRunning {
-		b.XLog.Info("配置已更新，重新启动监控任务")
-		return b.Restart(config)
-	}
-
-	b.XLog.Info("网络监控配置已更新")
-	return nil
-}
-
-// Shutdown 优雅关闭调度器
-func (b *Monitor) Shutdown() error {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	if b.scheduler != nil {
-		if err := b.scheduler.Shutdown(); err != nil {
-			b.XLog.Errorf("关闭调度器失败: %v", err)
-			return err
-		}
-		b.XLog.Info("网络监控调度器已关闭")
-	}
-
-	return nil
-}
-
-// 初始化状态
-func (b *Monitor) initializeStatus(config *vmodel.NetworkMonitorConfig) error {
+// InitializeStatus 初始化监控状态
+func (b *Monitor) InitializeStatus(config *vmodel.NetworkMonitorConfig) error {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
 
@@ -314,10 +114,28 @@ func (b *Monitor) initializeStatus(config *vmodel.NetworkMonitorConfig) error {
 	return nil
 }
 
-// performNetworkCheck 执行网络检测（定时任务回调函数）
-func (b *Monitor) performNetworkCheck() {
+// UpdateStatus 更新监控状态
+func (b *Monitor) UpdateStatus(enabled bool, status string) error {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
+
+	if monitorStatus != nil {
+		monitorStatus.Enabled = enabled
+		monitorStatus.CurrentStatus = status
+		return b.MonitorDao.SaveMonitorStatus(monitorStatus)
+	}
+	return nil
+}
+
+// PerformNetworkCheck 执行网络检测（供定时任务调用）
+func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
+	stateMutex.Lock()
+	defer stateMutex.Unlock()
+
+	if monitorStatus == nil {
+		b.XLog.Error("监控状态未初始化")
+		return
+	}
 
 	// 检查是否在冷却期
 	if b.isInCooldown() {
@@ -330,7 +148,7 @@ func (b *Monitor) performNetworkCheck() {
 	monitorStatus.LastCheckTime = &now
 
 	// 并发检测所有主机
-	results := b.checkAllHosts()
+	results := b.checkAllHosts(ctx)
 	monitorStatus.LastCheckResults = results
 
 	// 分析检测结果
@@ -357,17 +175,12 @@ func (b *Monitor) performNetworkCheck() {
 		// 检查是否需要重启
 		if b.shouldRestart() {
 			b.executeRestart()
-		} else {
-			// 失败时调整检测频率
-			b.adjustCheckFrequency(true)
 		}
 	} else {
 		// 检测成功，重置失败计数
 		if monitorStatus.ConsecutiveFails > 0 {
 			b.XLog.Info("网络连通性恢复正常")
 			monitorStatus.ConsecutiveFails = 0
-			// 恢复正常检测频率
-			b.adjustCheckFrequency(false)
 		}
 		monitorStats.SuccessfulChecks++
 	}
@@ -390,52 +203,43 @@ func (b *Monitor) performNetworkCheck() {
 	b.MonitorDao.SaveMonitorStats(monitorStats)
 }
 
-// adjustCheckFrequency 调整检测频率
-func (b *Monitor) adjustCheckFrequency(isFailed bool) {
-	if !b.isRunning || b.job == nil {
-		return
-	}
+// Reset 重置监控状态
+func (b *Monitor) Reset() error {
+	stateMutex.Lock()
+	defer stateMutex.Unlock()
 
-	var newInterval time.Duration
-	if isFailed {
-		newInterval = time.Duration(monitorStatus.Config.FailCheckInterval) * time.Second
-		b.XLog.Debugf("调整为失败检测间隔: %v", newInterval)
-	} else {
-		newInterval = time.Duration(monitorStatus.Config.CheckInterval) * time.Second
-		b.XLog.Debugf("恢复正常检测间隔: %v", newInterval)
-	}
+	if monitorStatus != nil {
+		monitorStatus.ConsecutiveFails = 0
+		monitorStatus.TotalRestarts = 0
+		monitorStatus.RestartsInWindow = 0
+		monitorStatus.LastRestartTime = nil
+		now := time.Now()
+		monitorStatus.WindowStartTime = &now
 
-	// 重新创建任务以更新间隔
-	go func() {
-		b.mutex.Lock()
-		defer b.mutex.Unlock()
-
-		if b.job != nil {
-			// 移除旧任务
-			if err := b.scheduler.RemoveJob(b.job.ID()); err != nil {
-				b.XLog.Errorf("移除旧任务失败: %v", err)
-				return
-			}
-
-			// 创建新任务
-			newJob, err := b.scheduler.NewJob(
-				gocron.DurationJob(newInterval),
-				gocron.NewTask(b.performNetworkCheck),
-				gocron.WithName("network_monitor"),
-			)
-
-			if err != nil {
-				b.XLog.Errorf("创建新任务失败: %v", err)
-				return
-			}
-
-			b.job = newJob
+		// 保存状态
+		if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
+			return fmt.Errorf("保存重置状态失败: %v", err)
 		}
-	}()
+	}
+
+	// 重置统计
+	if monitorStats != nil {
+		monitorStats.TotalChecks = 0
+		monitorStats.SuccessfulChecks = 0
+		monitorStats.FailedChecks = 0
+		monitorStats.SuccessRate = 0.0
+
+		if err := b.MonitorDao.SaveMonitorStats(monitorStats); err != nil {
+			return fmt.Errorf("保存重置统计失败: %v", err)
+		}
+	}
+
+	b.XLog.Info("网络监控状态已重置")
+	return nil
 }
 
 // 检测所有主机
-func (b *Monitor) checkAllHosts() []vmodel.HostCheckResult {
+func (b *Monitor) checkAllHosts(ctx context.Context) []vmodel.HostCheckResult {
 	hosts := monitorStatus.Config.TestHosts
 	results := make([]vmodel.HostCheckResult, len(hosts))
 	var wg sync.WaitGroup
@@ -444,7 +248,7 @@ func (b *Monitor) checkAllHosts() []vmodel.HostCheckResult {
 		wg.Add(1)
 		go func(index int, hostname string) {
 			defer wg.Done()
-			results[index] = b.pingHost(hostname)
+			results[index] = b.pingHost(ctx, hostname)
 		}(i, host)
 	}
 
@@ -452,8 +256,8 @@ func (b *Monitor) checkAllHosts() []vmodel.HostCheckResult {
 	return results
 }
 
-// Ping单个主机
-func (b *Monitor) pingHost(host string) vmodel.HostCheckResult {
+// pingHost 检测单个主机连通性
+func (b *Monitor) pingHost(ctx context.Context, host string) vmodel.HostCheckResult {
 	start := time.Now()
 	result := vmodel.HostCheckResult{
 		Host:      host,
@@ -463,29 +267,112 @@ func (b *Monitor) pingHost(host string) vmodel.HostCheckResult {
 	// 设置超时
 	timeout := time.Duration(monitorStatus.Config.CheckTimeout) * time.Second
 
-	// 先尝试TCP连接
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "80"), timeout)
-	if err == nil {
-		conn.Close()
-		result.Success = true
+	// 根据主机类型选择检测策略
+	if b.isWebHost(host) {
+		// 对于网站域名，优先使用HTTP检测
+		if b.checkHTTP(host, timeout, &result) {
+			result.Latency = time.Since(start)
+			return result
+		}
+	} else if b.isIPAddress(host) {
+		// 对于IP地址，根据类型选择检测方式
+		if b.isDNSServer(host) {
+			// DNS服务器使用UDP 53端口检测
+			if b.checkDNS(host, timeout, &result) {
+				result.Latency = time.Since(start)
+				return result
+			}
+		}
+	}
+
+	// 回退到ping检测
+	if b.checkPing(ctx, host, timeout, &result) {
 		result.Latency = time.Since(start)
 		return result
 	}
 
-	// TCP连接失败，尝试ping
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// 所有检测方式都失败
+	result.Success = false
+	if result.Error == "" {
+		result.Error = "所有连通性检测方式都失败"
+	}
+	result.Latency = time.Since(start)
+	return result
+}
+
+// isWebHost 判断是否为网站域名
+func (b *Monitor) isWebHost(host string) bool {
+	return !b.isIPAddress(host) && (host == "www.baidu.com" || host == "www.google.com" ||
+		host == "www.bing.com" || host == "www.qq.com")
+}
+
+// isIPAddress 判断是否为IP地址
+func (b *Monitor) isIPAddress(host string) bool {
+	return net.ParseIP(host) != nil
+}
+
+// isDNSServer 判断是否为知名DNS服务器
+func (b *Monitor) isDNSServer(host string) bool {
+	dnsServers := []string{"8.8.8.8", "8.8.4.4", "114.114.114.114", "223.5.5.5", "1.1.1.1", "208.67.222.222"}
+	for _, dns := range dnsServers {
+		if host == dns {
+			return true
+		}
+	}
+	return false
+}
+
+// checkHTTP HTTP连通性检测
+func (b *Monitor) checkHTTP(host string, timeout time.Duration, result *vmodel.HostCheckResult) bool {
+	// 先尝试HTTPS 443端口
+	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "443"), timeout); err == nil {
+		conn.Close()
+		result.Success = true
+		return true
+	}
+
+	// 再尝试HTTP 80端口
+	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "80"), timeout); err == nil {
+		conn.Close()
+		result.Success = true
+		return true
+	}
+
+	return false
+}
+
+// checkDNS DNS服务器连通性检测
+func (b *Monitor) checkDNS(host string, timeout time.Duration, result *vmodel.HostCheckResult) bool {
+	// 尝试UDP 53端口（DNS标准端口）
+	if conn, err := net.DialTimeout("udp", net.JoinHostPort(host, "53"), timeout); err == nil {
+		conn.Close()
+		result.Success = true
+		return true
+	}
+
+	// 也可以尝试TCP 53端口
+	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "53"), timeout); err == nil {
+		conn.Close()
+		result.Success = true
+		return true
+	}
+
+	return false
+}
+
+// checkPing Ping连通性检测
+func (b *Monitor) checkPing(ctx context.Context, host string, timeout time.Duration, result *vmodel.HostCheckResult) bool {
+	pingCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	pingCmd := fmt.Sprintf("ping -c 1 -W %d %s", monitorStatus.Config.CheckTimeout, host)
-	if _, pingErr := utils.RunBashCtx(ctx, pingCmd); pingErr != nil {
-		result.Success = false
-		result.Error = fmt.Sprintf("TCP连接和ping都失败: %v, %v", err, pingErr)
-	} else {
-		result.Success = true
-		result.Latency = time.Since(start)
+	if _, err := utils.RunBashCtx(pingCtx, pingCmd); err != nil {
+		result.Error = fmt.Sprintf("ping检测失败: %v", err)
+		return false
 	}
 
-	return result
+	result.Success = true
+	return true
 }
 
 // 判断是否应该重启
@@ -500,11 +387,6 @@ func (b *Monitor) shouldRestart() bool {
 		b.XLog.Error("已达到最大重启次数限制，自动禁用监控")
 		monitorStatus.Enabled = false
 		monitorStatus.CurrentStatus = "disabled"
-		// 停止定时任务
-		go func() {
-			time.Sleep(1 * time.Second)
-			b.Stop()
-		}()
 		return false
 	}
 
@@ -565,4 +447,39 @@ func (b *Monitor) executeRestart() {
 			b.XLog.Info("路由器重启命令已执行")
 		}
 	}()
+}
+
+// ========== 定时任务相关方法 ==========
+
+// NetworkMonitorJob 网络监控定时任务执行函数
+func (b *Monitor) NetworkMonitorJob(ctx context.Context) {
+	b.XLog.Debug("执行网络监控定时任务")
+	// 调用网络检测逻辑
+	b.PerformNetworkCheck(ctx)
+}
+
+// InitNetworkMonitor 初始化网络监控（从配置文件读取配置）
+func (b *Monitor) InitNetworkMonitorFromConfig() error {
+	// 从配置文件获取网络监控配置
+	config := &vmodel.NetworkMonitorConfig{
+		Enable:            b.Config.NetworkMonitor.Enable,
+		CheckInterval:     b.Config.NetworkMonitor.CheckInterval,
+		FailCheckInterval: b.Config.NetworkMonitor.FailCheckInterval,
+		CheckTimeout:      b.Config.NetworkMonitor.CheckTimeout,
+		TestHosts:         b.Config.NetworkMonitor.TestHosts,
+		FailThreshold:     b.Config.NetworkMonitor.FailThreshold,
+		FailHostThreshold: b.Config.NetworkMonitor.FailHostThreshold,
+		MaxRestarts:       b.Config.NetworkMonitor.MaxRestarts,
+		RestartWindow:     b.Config.NetworkMonitor.RestartWindow,
+		CooldownPeriod:    b.Config.NetworkMonitor.CooldownPeriod,
+	}
+
+	// 初始化监控状态
+	if err := b.InitializeStatus(config); err != nil {
+		b.XLog.Errorf("初始化网络监控状态失败: %v", err)
+		return err
+	}
+
+	b.XLog.Info("网络监控初始化完成")
+	return nil
 }

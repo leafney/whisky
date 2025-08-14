@@ -50,8 +50,7 @@ type NetworkMonitorConfig struct {
 
 // NetworkMonitorRequest 网络监控请求
 type NetworkMonitorRequest struct {
-	Action string                `json:"action"` // start, stop, reset, update_config
-	Config *NetworkMonitorConfig `json:"config,omitempty"`
+	Action string `json:"action"` // start, stop, reset, run_now
 }
 
 // NetworkMonitorStats 网络监控统计信息

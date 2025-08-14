@@ -12,6 +12,7 @@ import (
 	"github.com/leafney/whisky/internal/biz"
 	"github.com/leafney/whisky/internal/dao"
 	"github.com/leafney/whisky/internal/service"
+	"github.com/leafney/whisky/pkg/cronx"
 	"github.com/leafney/whisky/pkg/leveldbx"
 	"github.com/leafney/whisky/pkg/versionx"
 	"github.com/leafney/whisky/pkg/xlogx"
@@ -44,13 +45,20 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	}
 	networkMonitor := &service.NetworkMonitor{
 		XLog:       xLogSvc,
+		MonitorBiz: bizMonitor,
+	}
+	cronSvc := cronx.NewCronSvc(configConfig, xLogSvc, stop)
+	cron := &service.Cron{
+		XLog:       xLogSvc,
 		Config:     configConfig,
+		CronSvc:    cronSvc,
 		MonitorBiz: bizMonitor,
 	}
 	apiRouter := &api.Router{
 		XLog:              xLogSvc,
 		RouterSvc:         router,
 		NetworkMonitorSvc: networkMonitor,
+		CronSvc:           cron,
 	}
 	yAcd := &service.YAcd{
 		XLog:    xLogSvc,
@@ -73,6 +81,11 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		XLog:      xLogSvc,
 		SCrashSvc: sCrash,
 	}
+	cronTask := &api.CronTask{
+		XLog:              xLogSvc,
+		CronSvc:           cron,
+		NetworkMonitorSvc: networkMonitor,
+	}
 	defRouter := DefRouter{
 		HomeApi:           home,
 		RouterApi:         apiRouter,
@@ -80,6 +93,8 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		NetWorkApi:        apiNetWork,
 		SCrashApi:         apiSCrash,
 		NetworkMonitorSvc: networkMonitor,
+		CronSvc:           cron,
+		CronTaskApi:       cronTask,
 	}
 	injector := &Injector{
 		L: xLogSvc,

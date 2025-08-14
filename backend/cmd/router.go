@@ -26,6 +26,9 @@ type DefRouter struct {
 	NetWorkApi        *api.NetWork
 	SCrashApi         *api.SCrash
 	NetworkMonitorSvc *service.NetworkMonitor
+
+	CronSvc     *service.Cron
+	CronTaskApi *api.CronTask
 }
 
 func (r *DefRouter) AutoMigrate() error {
@@ -33,15 +36,18 @@ func (r *DefRouter) AutoMigrate() error {
 }
 
 func (r *DefRouter) AutoStart(ctx context.Context) error {
-	// 初始化并自动启动网络监控（如果配置启用）
-	if r.NetworkMonitorSvc != nil {
-		// 先初始化调度器
-		if err := r.NetworkMonitorSvc.Initialize(); err != nil {
+	// 启动定时任务服务
+	if r.CronSvc != nil {
+		// 加载任务
+		if err := r.CronSvc.LoadJobs(ctx); err != nil {
 			return err
 		}
 
-		// 自动启动监控
-		if err := r.NetworkMonitorSvc.AutoStart(ctx); err != nil {
+		// 启动调度器
+		r.CronSvc.Start()
+
+		// 自动启动网络监控（如果配置启用）
+		if err := r.CronSvc.AutoStartNetworkMonitor(); err != nil {
 			return err
 		}
 	}
@@ -63,11 +69,9 @@ func (r *DefRouter) Init(ctx context.Context) error {
 
 // Shutdown 优雅关闭
 func (r *DefRouter) Shutdown() error {
-	// 关闭网络监控服务
-	if r.NetworkMonitorSvc != nil {
-		if err := r.NetworkMonitorSvc.Shutdown(); err != nil {
-			return err
-		}
+	// 关闭定时任务服务
+	if r.CronSvc != nil {
+		r.CronSvc.Stop()
 	}
 
 	return nil
@@ -86,9 +90,11 @@ func (r *DefRouter) SetupRoutes(app *fiber.App, inj *Injector) {
 	app.Get("/router", r.RouterApi.RouterInfo)
 	app.Post("/router", r.RouterApi.RouterStatus)
 
-	// network monitor
-	app.Get("/router/monitor", r.RouterApi.NetworkMonitorStatus)
-	app.Post("/router/monitor", r.RouterApi.NetworkMonitorControl)
+	// cron tasks - 定时任务管理
+	app.Get("/cron/tasks", r.CronTaskApi.GetAllTasksStatus)
+	app.Get("/cron/methods", r.CronTaskApi.GetTaskMethods)
+	app.Post("/cron/task/:taskId", r.CronTaskApi.ControlTask)
+	app.Get("/cron/task/:taskId/status", r.CronTaskApi.GetTaskStatus)
 
 	// network
 	app.Get("/network", r.NetWorkApi.NetWorkInfo)

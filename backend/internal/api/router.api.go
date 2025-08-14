@@ -22,6 +22,7 @@ type Router struct {
 	XLog              *xlogx.XLogSvc
 	RouterSvc         *service.Router
 	NetworkMonitorSvc *service.NetworkMonitor
+	CronSvc           *service.Cron
 }
 
 func (a *Router) RouterInfo(c *fiber.Ctx) error {
@@ -74,21 +75,21 @@ func (a *Router) NetworkMonitorControl(c *fiber.Ctx) error {
 
 	switch req.Action {
 	case "start":
-		if err := a.NetworkMonitorSvc.StartMonitor(req.Config); err != nil {
+		if err := a.CronSvc.StartNetworkMonitor(); err != nil {
 			a.XLog.Errorf("启动网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控已启动")
 
 	case "stop":
-		if err := a.NetworkMonitorSvc.StopMonitor(); err != nil {
+		if err := a.CronSvc.StopNetworkMonitor(); err != nil {
 			a.XLog.Errorf("停止网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控已停止")
 
 	case "restart":
-		if err := a.NetworkMonitorSvc.RestartMonitor(req.Config); err != nil {
+		if err := a.CronSvc.RestartNetworkMonitor(); err != nil {
 			a.XLog.Errorf("重启网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
@@ -100,16 +101,6 @@ func (a *Router) NetworkMonitorControl(c *fiber.Ctx) error {
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控状态已重置")
-
-	case "update_config":
-		if req.Config == nil {
-			return response.Fail(c, "配置参数不能为空")
-		}
-		if err := a.NetworkMonitorSvc.UpdateMonitorConfig(req.Config); err != nil {
-			a.XLog.Errorf("更新网络监控配置失败: %v", err)
-			return response.Fail(c, err.Error())
-		}
-		a.XLog.Info("网络监控配置已更新")
 
 	default:
 		a.XLog.Errorf("无效的监控操作: %s", req.Action)

@@ -37,10 +37,14 @@ var Set = wire.NewSet(
 	wire.Struct(new(api.YAcd), "*"),
 	// wire.Struct(new(dao.YAcd), "*"),
 
-	// Network Monitor - 网络监控相关
+	// Network Monitor - 网络监控相关（简化版）
 	wire.Struct(new(dao.Monitor), "*"),
 	wire.Struct(new(biz.Monitor), "*"),
 	wire.Struct(new(service.NetworkMonitor), "*"),
+
+	// Cron Task - 定时任务相关
+	wire.Struct(new(service.Cron), "*"),
+	wire.Struct(new(api.CronTask), "*"),
 
 	wire.Struct(new(service.NetWork), "*"),
 	wire.Struct(new(service.Router), "*"),

@@ -12,6 +12,7 @@ import (
 	"github.com/google/wire"
 	"github.com/leafney/whisky/config"
 	"github.com/leafney/whisky/internal"
+	"github.com/leafney/whisky/pkg/cronx"
 	"github.com/leafney/whisky/pkg/leveldbx"
 	"github.com/leafney/whisky/pkg/versionx"
 	"github.com/leafney/whisky/pkg/xlogx"
@@ -23,6 +24,7 @@ var AppSet = wire.NewSet(
 	xlogx.NewXLogSvc,
 	leveldbx.NewLevelDBSvc,
 	internal.Set,
+	cronx.NewCronSvc,
 )
 
 type Injector struct {
