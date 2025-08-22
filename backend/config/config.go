@@ -27,6 +27,7 @@ var DefaultConfig embed.FS
 type Config struct {
 	// YacdPort string `json:"yacd_port"`
 	// WebHook  string `json:"web_hook"`
+	Port           string `koanf:"port" default:"8080"`
 	Log            Log
 	LevelDB        LevelDB
 	NetworkMonitor NetworkMonitor

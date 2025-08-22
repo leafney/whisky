@@ -11,11 +11,14 @@
 
 package cmd
 
-import "github.com/google/wire"
+import (
+	"github.com/google/wire"
+	"github.com/leafney/whisky/internal"
+)
 
 func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	wire.Build(
-		AppSet,
+		internal.ProviderSet,
 		wire.Struct(new(DefRouter), "*"),
 		wire.Struct(new(Injector), "*"),
 	)

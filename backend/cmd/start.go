@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/rose"
 )
 
 func StartServer(injector *Injector, port string, quit chan struct{}) {
@@ -67,15 +68,11 @@ func StartServer(injector *Injector, port string, quit chan struct{}) {
 	// start
 	injector.L.Info("[Server] Load successful")
 
-	// 监听端口，默认 > 配置文件 > 命令行
+	// 监听端口
 	defPort := "8080"
-	//defPort := vars.WebDefaultPort
-	//if !rose.StrIsEmpty(injector.C.Port) {
-	//	defPort = injector.C.Port
-	//}
-	//if !rose.StrIsEmpty(port) && port != vars.WebDefaultPort {
-	//	defPort = port
-	//}
+	if !rose.StrIsEmpty(injector.C.Port) {
+		defPort = injector.C.Port
+	}
 
 	if err := f.Listen(fmt.Sprintf(":%s", defPort)); err != nil {
 		injector.L.Fatalf("[Server] Listen error [%v]", err)
