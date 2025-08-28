@@ -33,6 +33,7 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	router := &service.Router{
 		XLog: xLogSvc,
 	}
+	cronSvc := cronx.NewCronSvc(configConfig, xLogSvc, stop)
 	levelDBSvc := leveldbx.NewLevelDBSvc(configConfig, xLogSvc, stop)
 	monitor := &dao.Monitor{
 		XLog:    xLogSvc,
@@ -43,22 +44,16 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		Config:     configConfig,
 		MonitorDao: monitor,
 	}
-	networkMonitor := &service.NetworkMonitor{
-		XLog:       xLogSvc,
-		MonitorBiz: bizMonitor,
-	}
-	cronSvc := cronx.NewCronSvc(configConfig, xLogSvc, stop)
-	cron := &service.Cron{
+	networkTask := &biz.NetworkTask{
 		XLog:       xLogSvc,
 		Config:     configConfig,
 		CronSvc:    cronSvc,
 		MonitorBiz: bizMonitor,
 	}
 	apiRouter := &api.Router{
-		XLog:              xLogSvc,
-		RouterSvc:         router,
-		NetworkMonitorSvc: networkMonitor,
-		CronSvc:           cron,
+		XLog:           xLogSvc,
+		RouterSvc:      router,
+		NetworkTaskBiz: networkTask,
 	}
 	yAcd := &service.YAcd{
 		XLog:    xLogSvc,
@@ -81,20 +76,26 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 		XLog:      xLogSvc,
 		SCrashSvc: sCrash,
 	}
+	cron := &service.Cron{
+		XLog:       xLogSvc,
+		Config:     configConfig,
+		CronSvc:    cronSvc,
+		MonitorBiz: bizMonitor,
+	}
 	cronTask := &api.CronTask{
-		XLog:              xLogSvc,
-		CronSvc:           cron,
-		NetworkMonitorSvc: networkMonitor,
+		XLog:           xLogSvc,
+		CronSvc:        cron,
+		NetworkTaskBiz: networkTask,
 	}
 	defRouter := DefRouter{
-		HomeApi:           home,
-		RouterApi:         apiRouter,
-		YacdApi:           apiYAcd,
-		NetWorkApi:        apiNetWork,
-		SCrashApi:         apiSCrash,
-		NetworkMonitorSvc: networkMonitor,
-		CronSvc:           cron,
-		CronTaskApi:       cronTask,
+		HomeApi:        home,
+		RouterApi:      apiRouter,
+		YacdApi:        apiYAcd,
+		NetWorkApi:     apiNetWork,
+		SCrashApi:      apiSCrash,
+		CronSvc:        cron,
+		CronTaskApi:    cronTask,
+		NetworkTaskBiz: networkTask,
 	}
 	injector := &Injector{
 		L: xLogSvc,

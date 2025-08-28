@@ -10,6 +10,7 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/leafney/whisky/internal/biz"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/internal/vmodel"
 	"github.com/leafney/whisky/pkg/parsex"
@@ -18,9 +19,9 @@ import (
 )
 
 type CronTask struct {
-	XLog              *xlogx.XLogSvc
-	CronSvc           *service.Cron
-	NetworkMonitorSvc *service.NetworkMonitor
+	XLog           *xlogx.XLogSvc
+	CronSvc        *service.Cron  // service 层，用于获取通用任务方法
+	NetworkTaskBiz *biz.NetworkTask
 }
 
 // GetTaskMethods 获取所有可用的任务方法
@@ -40,7 +41,7 @@ func (a *CronTask) GetTaskStatus(c *fiber.Ctx) error {
 	}
 
 	switch taskId {
-	case service.NetworkMonitorTaskID:
+	case biz.NetworkMonitorTaskID:
 		return a.getNetworkMonitorStatus(c)
 	default:
 		return response.Fail(c, "不支持的任务类型")
@@ -67,7 +68,7 @@ func (a *CronTask) ControlTask(c *fiber.Ctx) error {
 	a.XLog.Infof("任务控制请求: 任务=%s, 操作=%s", taskId, req.Action)
 
 	switch taskId {
-	case service.NetworkMonitorTaskID:
+	case biz.NetworkMonitorTaskID:
 		return a.controlNetworkMonitor(c, req.Action, req.Config)
 	default:
 		return response.Fail(c, "不支持的任务类型")
@@ -76,27 +77,10 @@ func (a *CronTask) ControlTask(c *fiber.Ctx) error {
 
 // 获取网络监控状态
 func (a *CronTask) getNetworkMonitorStatus(c *fiber.Ctx) error {
-	// 获取任务运行状态
-	isRunning := a.CronSvc.IsNetworkMonitorRunning()
-
-	// 获取监控详细状态（通过 NetworkMonitorSvc）
-	status, err := a.NetworkMonitorSvc.GetMonitorStatus()
+	result, err := a.NetworkTaskBiz.GetTaskStatus()
 	if err != nil {
 		a.XLog.Errorf("获取网络监控状态失败: %v", err)
-		return response.Fail(c, "获取监控状态失败")
-	}
-
-	stats, err := a.NetworkMonitorSvc.GetMonitorStats()
-	if err != nil {
-		a.XLog.Errorf("获取网络监控统计失败: %v", err)
-		return response.Fail(c, "获取监控统计失败")
-	}
-
-	result := map[string]interface{}{
-		"task_id":    service.NetworkMonitorTaskID,
-		"is_running": isRunning,
-		"status":     status,
-		"stats":      stats,
+		return response.Fail(c, err.Error())
 	}
 
 	return response.OkWithData(c, result)
@@ -104,37 +88,44 @@ func (a *CronTask) getNetworkMonitorStatus(c *fiber.Ctx) error {
 
 // 控制网络监控任务
 func (a *CronTask) controlNetworkMonitor(c *fiber.Ctx, action string, config *vmodel.NetworkMonitorConfig) error {
+	var err error
+
 	switch action {
 	case "start":
-		if err := a.CronSvc.StartNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.StartTask()
+		if err != nil {
 			a.XLog.Errorf("启动网络监控任务失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控任务已启动")
 
 	case "stop":
-		if err := a.CronSvc.StopNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.StopTask()
+		if err != nil {
 			a.XLog.Errorf("停止网络监控任务失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控任务已停止")
 
 	case "restart":
-		if err := a.CronSvc.RestartNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.RestartTask()
+		if err != nil {
 			a.XLog.Errorf("重启网络监控任务失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控任务已重启")
 
 	case "run_now":
-		if err := a.CronSvc.RunNetworkMonitorNow(); err != nil {
+		err = a.NetworkTaskBiz.RunTaskNow()
+		if err != nil {
 			a.XLog.Errorf("立即执行网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控任务已立即执行")
 
 	case "reset":
-		if err := a.NetworkMonitorSvc.ResetMonitor(); err != nil {
+		err = a.NetworkTaskBiz.ResetTask()
+		if err != nil {
 			a.XLog.Errorf("重置网络监控状态失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
@@ -151,11 +142,11 @@ func (a *CronTask) controlNetworkMonitor(c *fiber.Ctx, action string, config *vm
 // GetAllTasksStatus 获取所有任务状态
 func (a *CronTask) GetAllTasksStatus(c *fiber.Ctx) error {
 	// 获取网络监控的完整状态
-	networkMonitorStatus := a.CronSvc.GetNetworkMonitorFeatureStatus()
+	networkMonitorStatus := a.NetworkTaskBiz.GetTaskFeatureStatus()
 
 	tasks := []map[string]interface{}{
 		{
-			"task_id":         service.NetworkMonitorTaskID,
+			"task_id":         biz.NetworkMonitorTaskID,
 			"name":            "网络连通性监控",
 			"is_running":      networkMonitorStatus["task_running"],
 			"feature_enabled": networkMonitorStatus["feature_enabled"],

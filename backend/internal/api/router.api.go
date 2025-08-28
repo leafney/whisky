@@ -11,6 +11,7 @@ package api
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/leafney/whisky/config/vars"
+	"github.com/leafney/whisky/internal/biz"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/internal/vmodel"
 	"github.com/leafney/whisky/pkg/parsex"
@@ -19,10 +20,9 @@ import (
 )
 
 type Router struct {
-	XLog              *xlogx.XLogSvc
-	RouterSvc         *service.Router
-	NetworkMonitorSvc *service.NetworkMonitor
-	CronSvc           *service.Cron
+	XLog           *xlogx.XLogSvc
+	RouterSvc      *service.Router
+	NetworkTaskBiz *biz.NetworkTask
 }
 
 func (a *Router) RouterInfo(c *fiber.Ctx) error {
@@ -55,7 +55,7 @@ func (a *Router) RouterStatus(c *fiber.Ctx) error {
 
 // NetworkMonitorStatus 获取网络监控状态
 func (a *Router) NetworkMonitorStatus(c *fiber.Ctx) error {
-	status, err := a.NetworkMonitorSvc.GetDetailedStatus()
+	status, err := a.NetworkTaskBiz.GetTaskStatus()
 	if err != nil {
 		a.XLog.Errorf("获取网络监控状态失败: %v", err)
 		return response.Fail(c, "获取监控状态失败")
@@ -73,30 +73,35 @@ func (a *Router) NetworkMonitorControl(c *fiber.Ctx) error {
 
 	a.XLog.Infof("网络监控控制请求: %s", req.Action)
 
+	var err error
 	switch req.Action {
 	case "start":
-		if err := a.CronSvc.StartNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.StartTask()
+		if err != nil {
 			a.XLog.Errorf("启动网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控已启动")
 
 	case "stop":
-		if err := a.CronSvc.StopNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.StopTask()
+		if err != nil {
 			a.XLog.Errorf("停止网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控已停止")
 
 	case "restart":
-		if err := a.CronSvc.RestartNetworkMonitor(); err != nil {
+		err = a.NetworkTaskBiz.RestartTask()
+		if err != nil {
 			a.XLog.Errorf("重启网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}
 		a.XLog.Info("网络监控已重启")
 
 	case "reset":
-		if err := a.NetworkMonitorSvc.ResetMonitor(); err != nil {
+		err = a.NetworkTaskBiz.ResetTask()
+		if err != nil {
 			a.XLog.Errorf("重置网络监控失败: %v", err)
 			return response.Fail(c, err.Error())
 		}

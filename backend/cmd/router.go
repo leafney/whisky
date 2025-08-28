@@ -15,20 +15,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/leafney/whisky/internal/api"
+	"github.com/leafney/whisky/internal/biz"
 	"github.com/leafney/whisky/internal/service"
 	"github.com/leafney/whisky/web"
 )
 
 type DefRouter struct {
-	HomeApi           *api.Home
-	RouterApi         *api.Router
-	YacdApi           *api.YAcd
-	NetWorkApi        *api.NetWork
-	SCrashApi         *api.SCrash
-	NetworkMonitorSvc *service.NetworkMonitor
+	HomeApi    *api.Home
+	RouterApi  *api.Router
+	YacdApi    *api.YAcd
+	NetWorkApi *api.NetWork
+	SCrashApi  *api.SCrash
 
-	CronSvc     *service.Cron
-	CronTaskApi *api.CronTask
+	CronSvc        *service.Cron  // service 层的定时任务管理
+	CronTaskApi    *api.CronTask
+	NetworkTaskBiz *biz.NetworkTask
 }
 
 func (r *DefRouter) AutoMigrate() error {
@@ -38,7 +39,7 @@ func (r *DefRouter) AutoMigrate() error {
 func (r *DefRouter) AutoStart(ctx context.Context) error {
 	// 启动定时任务服务
 	if r.CronSvc != nil {
-		// 加载任务
+		// 加载任务（包括 TestJob 等）
 		if err := r.CronSvc.LoadJobs(ctx); err != nil {
 			return err
 		}
@@ -47,8 +48,10 @@ func (r *DefRouter) AutoStart(ctx context.Context) error {
 		r.CronSvc.Start()
 
 		// 自动启动网络监控（如果配置启用）
-		if err := r.CronSvc.AutoStartNetworkMonitor(); err != nil {
-			return err
+		if r.NetworkTaskBiz != nil {
+			if err := r.autoStartNetworkMonitor(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -72,6 +75,22 @@ func (r *DefRouter) Shutdown() error {
 	// 关闭定时任务服务
 	if r.CronSvc != nil {
 		r.CronSvc.Stop()
+	}
+
+	return nil
+}
+
+// autoStartNetworkMonitor 自动启动网络监控任务
+func (r *DefRouter) autoStartNetworkMonitor() error {
+	// 检查功能是否启用
+	featureStatus := r.NetworkTaskBiz.GetTaskFeatureStatus()
+	if enabled, ok := featureStatus["feature_enabled"].(bool); !ok || !enabled {
+		return nil // 功能未启用，跳过
+	}
+
+	// 启动网络监控任务
+	if err := r.NetworkTaskBiz.StartTask(); err != nil {
+		return err
 	}
 
 	return nil
