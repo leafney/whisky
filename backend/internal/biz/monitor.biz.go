@@ -460,18 +460,18 @@ func (b *Monitor) NetworkMonitorJob(ctx context.Context) {
 
 // InitNetworkMonitor 初始化网络监控（从配置文件读取配置）
 func (b *Monitor) InitNetworkMonitorFromConfig() error {
-	// 从配置文件获取网络监控配置
+	// 从配置文件获取网络监控配置，其他参数使用默认值
 	config := &vmodel.NetworkMonitorConfig{
 		Enable:            b.Config.NetworkMonitor.Enable,
 		CheckInterval:     b.Config.NetworkMonitor.CheckInterval,
-		FailCheckInterval: b.Config.NetworkMonitor.FailCheckInterval,
-		CheckTimeout:      b.Config.NetworkMonitor.CheckTimeout,
+		FailCheckInterval: 60,  // 默认失败后检测间隔：60秒
+		CheckTimeout:      10,  // 默认检测超时：10秒
 		TestHosts:         b.Config.NetworkMonitor.TestHosts,
-		FailThreshold:     b.Config.NetworkMonitor.FailThreshold,
-		FailHostThreshold: b.Config.NetworkMonitor.FailHostThreshold,
-		MaxRestarts:       b.Config.NetworkMonitor.MaxRestarts,
-		RestartWindow:     b.Config.NetworkMonitor.RestartWindow,
-		CooldownPeriod:    b.Config.NetworkMonitor.CooldownPeriod,
+		FailThreshold:     3,   // 默认连续失败阈值：3次
+		FailHostThreshold: 3,   // 默认失败主机数阈值：3个
+		MaxRestarts:       5,   // 默认最大重启次数：5次
+		RestartWindow:     24,  // 默认重启计数窗口：24小时
+		CooldownPeriod:    30,  // 默认冷却期：30分钟
 	}
 
 	// 初始化监控状态

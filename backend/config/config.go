@@ -45,16 +45,9 @@ type (
 	}
 
 	NetworkMonitor struct {
-		Enable            bool     `koanf:"enable" default:"false"`
-		CheckInterval     int      `koanf:"check_interval" default:"300"`
-		FailCheckInterval int      `koanf:"fail_check_interval" default:"60"`
-		CheckTimeout      int      `koanf:"check_timeout" default:"10"`
-		TestHosts         []string `koanf:"test_hosts" default:"[\"8.8.8.8\",\"114.114.114.114\",\"1.1.1.1\",\"223.5.5.5\",\"www.baidu.com\"]"`
-		FailThreshold     int      `koanf:"fail_threshold" default:"3"`
-		FailHostThreshold int      `koanf:"fail_host_threshold" default:"3"`
-		MaxRestarts       int      `koanf:"max_restarts" default:"5"`
-		RestartWindow     int      `koanf:"restart_window" default:"24"`
-		CooldownPeriod    int      `koanf:"cooldown_period" default:"30"`
+		Enable        bool     `koanf:"enable" default:"false"`
+		CheckInterval int      `koanf:"check_interval" default:"300"`
+		TestHosts     []string `koanf:"test_hosts" default:"[\"8.8.8.8\",\"114.114.114.114\",\"1.1.1.1\",\"223.5.5.5\",\"www.baidu.com\"]"`
 	}
 )
 

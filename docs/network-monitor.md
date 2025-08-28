@@ -109,14 +109,36 @@ func (b *Monitor) pingHost(host string) vmodel.HostCheckResult {
 
 ## 配置说明
 
-### 配置文件示例
+### 🎉 精简配置文件示例（v2.0）
+```toml
+[NetworkMonitor]
+# 核心配置（仅需配置3个参数）
+Enable = true                    # 是否启用网络监控
+CheckInterval = 300             # 正常检测间隔（秒）
+TestHosts = [                   # 测试主机列表
+    "8.8.8.8",
+    "114.114.114.114", 
+    "1.1.1.1",
+    "223.5.5.5",
+    "www.baidu.com"
+]
+
+# 以下参数已内置默认值，无需配置：
+# FailCheckInterval = 60          # 失败后检测间隔（秒）
+# CheckTimeout = 10               # 单次检测超时（秒） 
+# FailThreshold = 3               # 连续失败阈值（次）
+# FailHostThreshold = 3           # 单次检测失败主机数阈值
+# MaxRestarts = 5                 # 最大重启次数
+# RestartWindow = 24              # 重启计数窗口期（小时）
+# CooldownPeriod = 30             # 重启后冷却期（分钟）
+```
+
+### 传统完整配置文件示例（向后兼容）
 ```toml
 [NetworkMonitor]
 # 基本设置
 Enable = true                    # 是否启用网络监控
 CheckInterval = 300             # 正常检测间隔（秒）
-FailCheckInterval = 60          # 失败后检测间隔（秒）
-CheckTimeout = 10               # 单次检测超时（秒）
 
 # 检测目标
 TestHosts = [                   # 测试主机列表
@@ -126,31 +148,29 @@ TestHosts = [                   # 测试主机列表
     "223.5.5.5",
     "www.baidu.com"
 ]
-
-# 失败判定
-FailThreshold = 3               # 连续失败阈值（次）
-FailHostThreshold = 3           # 单次检测失败主机数阈值
-
-# 重启保护
-MaxRestarts = 5                 # 最大重启次数
-RestartWindow = 24              # 重启计数窗口期（小时）
-CooldownPeriod = 30             # 重启后冷却期（分钟）
 ```
 
 ### 配置参数详解
 
+#### 📝 需要配置的参数
+| 参数 | 类型 | 默认值 | 必填 | 说明 |
+|------|------|--------|------| -----|
+| `Enable` | bool | false | ✅ | 是否启用网络监控功能 |
+| `CheckInterval` | int | 300 | ✅ | 正常状态下的检测间隔（秒） |
+| `TestHosts` | []string | 见配置示例 | ✅ | 用于检测的目标主机列表 |
+
+#### 🔧 内置默认值参数（无需配置）
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `Enable` | bool | false | 是否启用网络监控功能 |
-| `CheckInterval` | int | 300 | 正常状态下的检测间隔（秒） |
 | `FailCheckInterval` | int | 60 | 检测失败后的检测间隔（秒） |
 | `CheckTimeout` | int | 10 | 单次主机检测的超时时间（秒） |
-| `TestHosts` | []string | 见上 | 用于检测的目标主机列表 |
 | `FailThreshold` | int | 3 | 触发重启的连续失败次数 |
 | `FailHostThreshold` | int | 3 | 单次检测中失败主机数阈值 |
 | `MaxRestarts` | int | 5 | 时间窗口内最大重启次数 |
 | `RestartWindow` | int | 24 | 重启次数统计的时间窗口（小时） |
 | `CooldownPeriod` | int | 30 | 重启后的冷却期（分钟） |
+
+> 💡 **配置精简原则**：大多数参数都有经过优化的默认值，用户只需配置核心的3个参数即可使用。后续版本将在UI界面中提供高级参数配置功能。
 
 ## API 接口
 
@@ -225,16 +245,22 @@ Content-Type: application/json
 
 ## 使用示例
 
-### 1. 启用自动监控
-编辑配置文件 `backend/config/config.toml`：
+### 1. 快速启用自动监控（推荐方式）
+编辑配置文件 `backend/data/config.toml`：
 ```toml
 [NetworkMonitor]
-Enable = true
-CheckInterval = 300
-TestHosts = ["8.8.8.8", "114.114.114.114", "1.1.1.1"]
+# 只需配置3个核心参数
+Enable = true                                    # 启用监控
+CheckInterval = 300                             # 5分钟检测一次
+TestHosts = ["8.8.8.8", "114.114.114.114"]      # 检测谷歌和114DNS
 ```
 
 重启程序，监控将自动启动。
+
+**优势：**
+- ✅ 配置简单，只需3个参数
+- ✅ 其他7个参数使用优化的默认值
+- ✅ 适合大部分使用场景
 
 ### 2. 手动控制监控
 
@@ -251,6 +277,8 @@ curl -X POST http://localhost:8080/router/monitor \
     }
   }'
 ```
+
+> 💡 **注意**：API接口中的config参数仍包含所有字段，用于动态配置。配置文件简化不影响API功能。
 
 **查看状态：**
 ```bash
@@ -371,6 +399,24 @@ curl -X POST http://localhost:8080/router/monitor \
 - 并发检测多个主机，提高检测效率
 - 使用连接池和超时控制，避免资源泄露
 - 智能调度减少不必要的检测，节省系统资源
+
+## 🔄 更新日志
+
+### v2.0 配置精简版 (2025-08-28)
+- ✨ **配置大幅精简**：从10个配置项减少到3个（70%减少）
+- 🔧 **智能默认值**：7个参数内置优化默认值，无需配置
+- 📝 **向后兼容**：保持API接口完整功能
+- 🎯 **用户友好**：降低配置复杂度，提升使用体验
+
+**主要变更：**
+- 配置文件只需3个核心参数：`Enable`、`CheckInterval`、`TestHosts`
+- 以下参数移至代码默认值：`FailCheckInterval`、`CheckTimeout`、`FailThreshold`、`FailHostThreshold`、`MaxRestarts`、`RestartWindow`、`CooldownPeriod`
+- 更新了配置验证逻辑，移除对已删除参数的引用
+
+**升级指南：**
+1. 编辑现有配置文件，删除除核心3个参数外的其他配置项
+2. 重启应用，功能保持不变（使用默认值）
+3. 后续版本将在UI中提供高级参数配置
 
 ---
 
