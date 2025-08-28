@@ -13,8 +13,16 @@ package cmd
 
 import (
 	"github.com/google/wire"
+	"github.com/leafney/whisky/config"
 	"github.com/leafney/whisky/internal"
+	"github.com/leafney/whisky/pkg/xlogx"
 )
+
+type Injector struct {
+	L *xlogx.XLogSvc
+	R DefRouter
+	C *config.Config
+}
 
 func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	wire.Build(

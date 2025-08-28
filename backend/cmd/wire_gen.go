@@ -104,3 +104,11 @@ func BuildInjector(stop chan struct{}) (*Injector, func(), error) {
 	return injector, func() {
 	}, nil
 }
+
+// wire.go:
+
+type Injector struct {
+	L *xlogx.XLogSvc
+	R DefRouter
+	C *config.Config
+}
