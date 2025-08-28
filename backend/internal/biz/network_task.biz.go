@@ -77,20 +77,26 @@ func (nt *NetworkTask) StartTask() error {
 	}
 
 	// 初始化监控状态（从配置文件读取配置）
+	nt.XLog.Infof("初始化网络监控配置 - 检测间隔: %ds, 测试主机数: %d", 
+		nt.Config.NetworkMonitor.CheckInterval, len(nt.Config.NetworkMonitor.TestHosts))
 	if err := nt.MonitorBiz.InitNetworkMonitorFromConfig(); err != nil {
 		return fmt.Errorf("初始化网络监控失败: %v", err)
 	}
 
 	// 从配置文件构建 cron 表达式（每 N 秒执行一次）
 	cronExpr := fmt.Sprintf("*/%d * * * * *", nt.Config.NetworkMonitor.CheckInterval)
+	nt.XLog.Debugf("创建定时任务 - Cron表达式: %s (每%d秒执行一次)", 
+		cronExpr, nt.Config.NetworkMonitor.CheckInterval)
 
 	// 注册任务方法
 	nt.CronSvc.RegisterTaskMethod("networkMonitor", "网络连通性监控", nt.MonitorBiz.NetworkMonitorJob)
 
 	// 添加定时任务
+	nt.XLog.Debugf("注册网络监控定时任务 - 任务ID: %s", NetworkMonitorTaskID)
 	if err := nt.CronSvc.AddJobSecs(NetworkMonitorTaskID, cronExpr, nt.MonitorBiz.NetworkMonitorJob); err != nil {
 		return fmt.Errorf("添加网络监控定时任务失败: %v", err)
 	}
+	nt.XLog.Infof("网络监控定时任务注册成功 - 任务ID: %s", NetworkMonitorTaskID)
 
 	// 更新监控状态
 	if err := nt.MonitorBiz.UpdateStatus(true, "running"); err != nil {
@@ -118,9 +124,11 @@ func (nt *NetworkTask) stopTaskInternal() error {
 	}
 
 	// 移除定时任务
+	nt.XLog.Infof("正在移除网络监控定时任务 - 任务ID: %s", NetworkMonitorTaskID)
 	if err := nt.CronSvc.RemoveJob(NetworkMonitorTaskID); err != nil {
 		return fmt.Errorf("移除网络监控任务失败: %v", err)
 	}
+	nt.XLog.Infof("网络监控定时任务已移除 - 任务ID: %s", NetworkMonitorTaskID)
 
 	// 更新监控状态
 	if err := nt.MonitorBiz.UpdateStatus(false, "disabled"); err != nil {
@@ -158,7 +166,13 @@ func (nt *NetworkTask) RunTaskNow() error {
 		return fmt.Errorf("网络监控任务不存在")
 	}
 
-	return nt.CronSvc.RunJobNow(NetworkMonitorTaskID)
+	nt.XLog.Infof("手动执行网络监控任务 - 任务ID: %s", NetworkMonitorTaskID)
+	if err := nt.CronSvc.RunJobNow(NetworkMonitorTaskID); err != nil {
+		nt.XLog.Errorf("手动执行网络监控任务失败: %v", err)
+		return err
+	}
+	nt.XLog.Infof("手动执行网络监控任务完成")
+	return nil
 }
 
 // ResetTask 重置网络监控状态

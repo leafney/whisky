@@ -133,30 +133,47 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 	defer stateMutex.Unlock()
 
 	if monitorStatus == nil {
-		b.XLog.Error("监控状态未初始化")
+		b.XLog.Error("监控状态未初始化，无法执行网络检测")
 		return
 	}
 
 	// 检查是否在冷却期
 	if b.isInCooldown() {
-		b.XLog.Debug("处于冷却期，跳过检测")
+		remainingTime := time.Duration(monitorStatus.Config.CooldownPeriod)*time.Minute - time.Since(*monitorStatus.LastRestartTime)
+		b.XLog.Debugf("处于冷却期，跳过检测。剩余冷却时间: %v", remainingTime.Round(time.Second))
 		return
 	}
 
-	b.XLog.Debug("开始执行网络连通性检测")
+	b.XLog.Infof("开始执行网络连通性检测 - 连续失败次数: %d/%d", 
+		monitorStatus.ConsecutiveFails, monitorStatus.Config.FailThreshold)
 	now := time.Now()
 	monitorStatus.LastCheckTime = &now
 
 	// 并发检测所有主机
+	b.XLog.Debugf("开始检测 %d 个主机: %v", len(monitorStatus.Config.TestHosts), monitorStatus.Config.TestHosts)
 	results := b.checkAllHosts(ctx)
 	monitorStatus.LastCheckResults = results
 
 	// 分析检测结果
 	failedHosts := 0
+	successHosts := []string{}
+	failedHostList := []string{}
 	for _, result := range results {
 		if !result.Success {
 			failedHosts++
+			failedHostList = append(failedHostList, fmt.Sprintf("%s(%s)", result.Host, result.Error))
+		} else {
+			successHosts = append(successHosts, fmt.Sprintf("%s(%.0fms)", result.Host, float64(result.Latency.Nanoseconds())/1e6))
 		}
+	}
+
+	b.XLog.Infof("检测结果汇总 - 成功: %d/%d, 失败: %d/%d", 
+		len(results)-failedHosts, len(results), failedHosts, len(results))
+	if len(successHosts) > 0 {
+		b.XLog.Debugf("成功主机: %v", successHosts)
+	}
+	if len(failedHostList) > 0 {
+		b.XLog.Debugf("失败主机: %v", failedHostList)
 	}
 
 	// 更新统计
@@ -168,19 +185,26 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 	if checkFailed {
 		monitorStatus.ConsecutiveFails++
 		monitorStats.FailedChecks++
-		b.XLog.Errorf("网络检测失败，连续失败次数: %d/%d，失败主机: %d/%d",
+		b.XLog.Errorf("网络检测失败 - 连续失败: %d/%d, 本次失败主机: %d/%d (阈值: %d)",
 			monitorStatus.ConsecutiveFails, monitorStatus.Config.FailThreshold,
-			failedHosts, len(monitorStatus.Config.TestHosts))
+			failedHosts, len(monitorStatus.Config.TestHosts), monitorStatus.Config.FailHostThreshold)
 
 		// 检查是否需要重启
 		if b.shouldRestart() {
+			b.XLog.Errorf("网络连通性持续异常，准备执行路由器重启 - 总重启次数: %d, 窗口内重启: %d/%d",
+				monitorStatus.TotalRestarts, monitorStatus.RestartsInWindow, monitorStatus.Config.MaxRestarts)
 			b.executeRestart()
+		} else {
+			b.XLog.Infof("网络检测失败，但未达到重启条件 - 需要连续失败 %d 次", 
+				monitorStatus.Config.FailThreshold-monitorStatus.ConsecutiveFails)
 		}
 	} else {
 		// 检测成功，重置失败计数
 		if monitorStatus.ConsecutiveFails > 0 {
-			b.XLog.Info("网络连通性恢复正常")
+			b.XLog.Infof("网络连通性恢复正常 - 重置连续失败计数 %d -> 0", monitorStatus.ConsecutiveFails)
 			monitorStatus.ConsecutiveFails = 0
+		} else {
+			b.XLog.Debugf("网络连通性正常 - 平均延迟: %.0fms", b.calculateAverageLatency(results))
 		}
 		monitorStats.SuccessfulChecks++
 	}
@@ -190,17 +214,28 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 
 	// 计算下次检测时间
 	var nextInterval time.Duration
+	var intervalType string
 	if checkFailed && monitorStatus.ConsecutiveFails < monitorStatus.Config.FailThreshold {
 		nextInterval = time.Duration(monitorStatus.Config.FailCheckInterval) * time.Second
+		intervalType = "失败检测间隔"
 	} else {
 		nextInterval = time.Duration(monitorStatus.Config.CheckInterval) * time.Second
+		intervalType = "正常检测间隔"
 	}
 	nextCheck := now.Add(nextInterval)
 	monitorStatus.NextCheckTime = &nextCheck
 
+	b.XLog.Debugf("本次检测完成 - 成功率: %.1f%% (%d/%d), 下次检测: %s (%s)",
+		monitorStats.SuccessRate, monitorStats.SuccessfulChecks, monitorStats.TotalChecks,
+		nextCheck.Format("15:04:05"), intervalType)
+
 	// 保存状态和统计
-	b.MonitorDao.SaveMonitorStatus(monitorStatus)
-	b.MonitorDao.SaveMonitorStats(monitorStats)
+	if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
+		b.XLog.Errorf("保存监控状态失败: %v", err)
+	}
+	if err := b.MonitorDao.SaveMonitorStats(monitorStats); err != nil {
+		b.XLog.Errorf("保存监控统计失败: %v", err)
+	}
 }
 
 // Reset 重置监控状态
@@ -244,15 +279,23 @@ func (b *Monitor) checkAllHosts(ctx context.Context) []vmodel.HostCheckResult {
 	results := make([]vmodel.HostCheckResult, len(hosts))
 	var wg sync.WaitGroup
 
+	checkStart := time.Now()
+	b.XLog.Debugf("开始并发检测 %d 个主机，超时时间: %ds", len(hosts), monitorStatus.Config.CheckTimeout)
+
 	for i, host := range hosts {
 		wg.Add(1)
 		go func(index int, hostname string) {
 			defer wg.Done()
+			hostStart := time.Now()
 			results[index] = b.pingHost(ctx, hostname)
+			b.XLog.Debugf("主机 %s 检测完成: 成功=%v, 耗时=%.0fms", 
+				hostname, results[index].Success, float64(time.Since(hostStart).Nanoseconds())/1e6)
 		}(i, host)
 	}
 
 	wg.Wait()
+	totalTime := time.Since(checkStart)
+	b.XLog.Debugf("所有主机检测完成，总耗时: %.0fms", float64(totalTime.Nanoseconds())/1e6)
 	return results
 }
 
@@ -266,28 +309,38 @@ func (b *Monitor) pingHost(ctx context.Context, host string) vmodel.HostCheckRes
 
 	// 设置超时
 	timeout := time.Duration(monitorStatus.Config.CheckTimeout) * time.Second
+	b.XLog.Debugf("开始检测主机 %s (超时: %v)", host, timeout)
 
 	// 根据主机类型选择检测策略
 	if b.isWebHost(host) {
 		// 对于网站域名，优先使用HTTP检测
+		b.XLog.Debugf("检测网站域名 %s - 尝试HTTP连接", host)
 		if b.checkHTTP(host, timeout, &result) {
 			result.Latency = time.Since(start)
+			b.XLog.Debugf("主机 %s HTTP检测成功，延迟: %.0fms", host, float64(result.Latency.Nanoseconds())/1e6)
 			return result
 		}
+		b.XLog.Debugf("主机 %s HTTP检测失败，尝试ping检测", host)
 	} else if b.isIPAddress(host) {
 		// 对于IP地址，根据类型选择检测方式
 		if b.isDNSServer(host) {
 			// DNS服务器使用UDP 53端口检测
+			b.XLog.Debugf("检测DNS服务器 %s - 尝试UDP 53端口", host)
 			if b.checkDNS(host, timeout, &result) {
 				result.Latency = time.Since(start)
+				b.XLog.Debugf("DNS服务器 %s 检测成功，延迟: %.0fms", host, float64(result.Latency.Nanoseconds())/1e6)
 				return result
 			}
+			b.XLog.Debugf("DNS服务器 %s UDP检测失败，尝试ping检测", host)
+		} else {
+			b.XLog.Debugf("检测IP地址 %s - 直接使用ping", host)
 		}
 	}
 
 	// 回退到ping检测
 	if b.checkPing(ctx, host, timeout, &result) {
 		result.Latency = time.Since(start)
+		b.XLog.Debugf("主机 %s ping检测成功，延迟: %.0fms", host, float64(result.Latency.Nanoseconds())/1e6)
 		return result
 	}
 
@@ -297,6 +350,8 @@ func (b *Monitor) pingHost(ctx context.Context, host string) vmodel.HostCheckRes
 		result.Error = "所有连通性检测方式都失败"
 	}
 	result.Latency = time.Since(start)
+	b.XLog.Errorf("主机 %s 所有检测方式都失败，总耗时: %.0fms, 错误: %s", 
+		host, float64(result.Latency.Nanoseconds())/1e6, result.Error)
 	return result
 }
 
@@ -325,17 +380,26 @@ func (b *Monitor) isDNSServer(host string) bool {
 // checkHTTP HTTP连通性检测
 func (b *Monitor) checkHTTP(host string, timeout time.Duration, result *vmodel.HostCheckResult) bool {
 	// 先尝试HTTPS 443端口
+	b.XLog.Debugf("尝试HTTPS连接 %s:443", host)
 	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "443"), timeout); err == nil {
 		conn.Close()
 		result.Success = true
+		b.XLog.Debugf("HTTPS连接成功: %s:443", host)
 		return true
+	} else {
+		b.XLog.Debugf("HTTPS连接失败 %s:443 - %v", host, err)
 	}
 
 	// 再尝试HTTP 80端口
+	b.XLog.Debugf("尝试HTTP连接 %s:80", host)
 	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "80"), timeout); err == nil {
 		conn.Close()
 		result.Success = true
+		b.XLog.Debugf("HTTP连接成功: %s:80", host)
 		return true
+	} else {
+		b.XLog.Debugf("HTTP连接失败 %s:80 - %v", host, err)
+		result.Error = fmt.Sprintf("HTTP/HTTPS连接失败: %v", err)
 	}
 
 	return false
@@ -344,17 +408,26 @@ func (b *Monitor) checkHTTP(host string, timeout time.Duration, result *vmodel.H
 // checkDNS DNS服务器连通性检测
 func (b *Monitor) checkDNS(host string, timeout time.Duration, result *vmodel.HostCheckResult) bool {
 	// 尝试UDP 53端口（DNS标准端口）
+	b.XLog.Debugf("尝试UDP DNS连接 %s:53", host)
 	if conn, err := net.DialTimeout("udp", net.JoinHostPort(host, "53"), timeout); err == nil {
 		conn.Close()
 		result.Success = true
+		b.XLog.Debugf("UDP DNS连接成功: %s:53", host)
 		return true
+	} else {
+		b.XLog.Debugf("UDP DNS连接失败 %s:53 - %v", host, err)
 	}
 
 	// 也可以尝试TCP 53端口
+	b.XLog.Debugf("尝试TCP DNS连接 %s:53", host)
 	if conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "53"), timeout); err == nil {
 		conn.Close()
 		result.Success = true
+		b.XLog.Debugf("TCP DNS连接成功: %s:53", host)
 		return true
+	} else {
+		b.XLog.Debugf("TCP DNS连接失败 %s:53 - %v", host, err)
+		result.Error = fmt.Sprintf("DNS连接失败(UDP+TCP): %v", err)
 	}
 
 	return false
@@ -366,9 +439,13 @@ func (b *Monitor) checkPing(ctx context.Context, host string, timeout time.Durat
 	defer cancel()
 
 	pingCmd := fmt.Sprintf("ping -c 1 -W %d %s", monitorStatus.Config.CheckTimeout, host)
-	if _, err := utils.RunBashCtx(pingCtx, pingCmd); err != nil {
+	b.XLog.Debugf("执行ping命令: %s", pingCmd)
+	if output, err := utils.RunBashCtx(pingCtx, pingCmd); err != nil {
 		result.Error = fmt.Sprintf("ping检测失败: %v", err)
+		b.XLog.Debugf("ping命令失败 %s - 错误: %v, 输出: %s", host, err, string(output))
 		return false
+	} else {
+		b.XLog.Debugf("ping命令成功 %s - 输出: %s", host, string(output))
 	}
 
 	result.Success = true
@@ -420,7 +497,8 @@ func (b *Monitor) isInCooldown() bool {
 
 // 执行重启操作
 func (b *Monitor) executeRestart() {
-	b.XLog.Error("网络连通性持续异常，执行路由器重启")
+	b.XLog.Errorf("网络连通性持续异常，执行路由器重启 - 连续失败 %d 次，达到重启阈值", 
+		monitorStatus.Config.FailThreshold)
 
 	// 更新重启统计
 	now := time.Now()
@@ -430,32 +508,74 @@ func (b *Monitor) executeRestart() {
 	monitorStatus.ConsecutiveFails = 0
 	monitorStatus.CurrentStatus = "cooldown"
 
+	b.XLog.Infof("更新重启统计 - 总重启次数: %d, 窗口内重启次数: %d/%d, 冷却期: %d分钟",
+		monitorStatus.TotalRestarts, monitorStatus.RestartsInWindow, 
+		monitorStatus.Config.MaxRestarts, monitorStatus.Config.CooldownPeriod)
+
 	// 记录重启日志
 	reason := fmt.Sprintf("连续%d次网络检测失败", monitorStatus.Config.FailThreshold)
-	b.MonitorDao.LogRestart(reason)
+	if err := b.MonitorDao.LogRestart(reason); err != nil {
+		b.XLog.Errorf("记录重启日志失败: %v", err)
+	} else {
+		b.XLog.Infof("重启日志已记录: %s", reason)
+	}
 
 	// 保存状态
-	b.MonitorDao.SaveMonitorStatus(monitorStatus)
+	if err := b.MonitorDao.SaveMonitorStatus(monitorStatus); err != nil {
+		b.XLog.Errorf("保存重启后状态失败: %v", err)
+	}
 
 	// 执行重启命令（异步）
 	go func() {
 		// 延迟执行，确保状态已保存
+		b.XLog.Infof("延迟2秒后执行重启命令，确保状态保存完成")
 		time.Sleep(2 * time.Second)
-		if _, err := utils.RunBash(cmds.ScriptReboot); err != nil {
-			b.XLog.Errorf("执行重启命令失败: %v", err)
+		
+		b.XLog.Infof("开始执行系统重启命令: %s", cmds.ScriptReboot)
+		if output, err := utils.RunBash(cmds.ScriptReboot); err != nil {
+			b.XLog.Errorf("执行重启命令失败: %v, 输出: %s", err, string(output))
 		} else {
-			b.XLog.Info("路由器重启命令已执行")
+			b.XLog.Infof("路由器重启命令执行成功，输出: %s", string(output))
 		}
 	}()
+}
+
+// calculateAverageLatency 计算平均延迟（毫秒）
+func (b *Monitor) calculateAverageLatency(results []vmodel.HostCheckResult) float64 {
+	var totalLatency time.Duration
+	successCount := 0
+	
+	for _, result := range results {
+		if result.Success {
+			totalLatency += result.Latency
+			successCount++
+		}
+	}
+	
+	if successCount == 0 {
+		return 0
+	}
+	
+	avgNanos := float64(totalLatency.Nanoseconds()) / float64(successCount)
+	return avgNanos / 1e6 // 转换为毫秒
 }
 
 // ========== 定时任务相关方法 ==========
 
 // NetworkMonitorJob 网络监控定时任务执行函数
 func (b *Monitor) NetworkMonitorJob(ctx context.Context) {
-	b.XLog.Debug("执行网络监控定时任务")
+	b.XLog.Infof("定时任务触发 - 开始执行网络监控检测 [%s]", time.Now().Format("2006-01-02 15:04:05"))
+	
+	// 记录执行开始时间
+	startTime := time.Now()
+	
 	// 调用网络检测逻辑
 	b.PerformNetworkCheck(ctx)
+	
+	// 记录执行完成时间和耗时
+	duration := time.Since(startTime)
+	b.XLog.Infof("网络监控检测执行完成 - 总耗时: %.0fms [%s]", 
+		float64(duration.Nanoseconds())/1e6, time.Now().Format("15:04:05"))
 }
 
 // InitNetworkMonitor 初始化网络监控（从配置文件读取配置）
