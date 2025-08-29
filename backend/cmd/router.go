@@ -27,7 +27,7 @@ type DefRouter struct {
 	NetWorkApi *api.NetWork
 	SCrashApi  *api.SCrash
 
-	CronSvc        *service.Cron  // service 层的定时任务管理
+	CronSvc        *service.Cron // service 层的定时任务管理
 	CronTaskApi    *api.CronTask
 	NetworkTaskBiz *biz.NetworkTask
 }

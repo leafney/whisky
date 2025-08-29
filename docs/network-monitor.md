@@ -174,18 +174,63 @@ TestHosts = [                   # 测试主机列表
 
 ## API 接口
 
-### 获取监控状态
+网络监控功能通过定时任务管理接口提供，所有API接口都包含功能启用状态检查。
+
+### 📋 可用接口列表
+
+#### 1. 获取所有任务状态（包括网络监控）
 ```http
-GET /router/monitor
+GET /cron/tasks
 ```
 
 **响应示例：**
 ```json
 {
   "code": 0,
+  "message": "success", 
+  "data": {
+    "tasks": [
+      {
+        "task_id": "network_monitor",
+        "name": "网络连通性监控",
+        "is_running": true,
+        "feature_enabled": true,
+        "config_valid": true
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+#### 2. 获取网络监控详细状态
+```http
+GET /cron/task/network_monitor/status
+```
+
+**功能未启用时响应：**
+```json
+{
+  "code": 0,
   "message": "success",
   "data": {
-    "status": {
+    "feature_enabled": false,
+    "message": "网络监控功能未启用，请在配置文件中启用该功能"
+  }
+}
+```
+
+**功能启用时响应：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "task_id": "network_monitor",
+    "task_running": true,
+    "feature_enabled": true,
+    "config_valid": true,
+    "monitor_status": {
       "enabled": true,
       "current_status": "running",
       "last_check_time": "2025-08-13T17:00:00Z",
@@ -199,49 +244,97 @@ GET /router/monitor
           "host": "8.8.8.8",
           "success": true,
           "latency": 50000000,
-          "check_time": "2025-08-13T17:00:00Z"
+          "check_time": "2025-08-13T17:00:00Z",
+          "error": ""
+        },
+        {
+          "host": "114.114.114.114", 
+          "success": false,
+          "latency": 10000000000,
+          "check_time": "2025-08-13T17:00:00Z",
+          "error": "连接超时"
         }
       ],
       "config": {
         "enable": true,
         "check_interval": 300,
         "fail_check_interval": 60,
-        "test_hosts": ["8.8.8.8", "114.114.114.114"]
+        "check_timeout": 10,
+        "test_hosts": ["8.8.8.8", "114.114.114.114"],
+        "fail_threshold": 3,
+        "fail_host_threshold": 3,
+        "max_restarts": 5,
+        "restart_window": 24,
+        "cooldown_period": 30
       }
     },
-    "stats": {
+    "monitor_stats": {
       "total_checks": 120,
       "successful_checks": 118,
       "failed_checks": 2,
-      "success_rate": 98.33,
-      "average_latency": 45000000
+      "success_rate": 98.33
     }
   }
 }
 ```
 
-### 控制监控操作
+#### 3. 控制网络监控任务
 ```http
-POST /router/monitor
+POST /cron/task/network_monitor
 Content-Type: application/json
 ```
 
 **请求参数：**
 ```json
 {
-  "action": "start|stop|restart|reset|update_config",
-  "config": {
-    // 配置参数（仅在start和update_config时需要）
-  }
+  "action": "start|stop|restart|reset|run_now"
 }
 ```
 
 **支持的操作：**
-- `start`: 启动网络监控
-- `stop`: 停止网络监控
-- `restart`: 重启网络监控
-- `reset`: 重置监控状态和统计
-- `update_config`: 更新配置
+- `start`: 启动网络监控任务
+- `stop`: 停止网络监控任务  
+- `restart`: 重启网络监控任务
+- `reset`: 重置监控状态和统计数据
+- `run_now`: 立即执行一次网络检测
+
+**成功响应：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "task_id": "network_monitor",
+    "action": "start",
+    "message": "网络监控任务已启动"
+  }
+}
+```
+
+**功能未启用时响应：**
+```json
+{
+  "code": -1,
+  "message": "网络监控功能未启用，请在配置文件中启用该功能后重启服务"
+}
+```
+
+#### 4. 获取可用任务方法
+```http
+GET /cron/methods
+```
+
+**响应示例：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "methods": ["testJob", "networkMonitorJob"],
+    "count": 2
+  }
+}
+```
 
 ## 使用示例
 
@@ -262,34 +355,44 @@ TestHosts = ["8.8.8.8", "114.114.114.114"]      # 检测谷歌和114DNS
 - ✅ 其他7个参数使用优化的默认值
 - ✅ 适合大部分使用场景
 
-### 2. 手动控制监控
+### 2. 通过API控制监控
 
-**启动监控：**
+**查看所有任务状态：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl http://localhost:8080/cron/tasks
+```
+
+**查看网络监控详细状态：**
+```bash
+curl http://localhost:8080/cron/task/network_monitor/status
+```
+
+**启动网络监控：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
-  -d '{
-    "action": "start",
-    "config": {
-      "enable": true,
-      "check_interval": 180,
-      "test_hosts": ["8.8.8.8", "114.114.114.114"]
-    }
-  }'
+  -d '{"action": "start"}'
 ```
 
-> 💡 **注意**：API接口中的config参数仍包含所有字段，用于动态配置。配置文件简化不影响API功能。
-
-**查看状态：**
+**停止网络监控：**
 ```bash
-curl http://localhost:8080/router/monitor
-```
-
-**停止监控：**
-```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
   -d '{"action": "stop"}'
+```
+
+**立即执行一次检测：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
+  -H "Content-Type: application/json" \
+  -d '{"action": "run_now"}'
+```
+
+**重置监控状态：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
+  -H "Content-Type: application/json" \
+  -d '{"action": "reset"}'
 ```
 
 ### 3. 监控日志示例
@@ -346,28 +449,29 @@ curl -X POST http://localhost:8080/router/monitor \
 
 **查看详细状态：**
 ```bash
-curl http://localhost:8080/router/monitor | jq .
+curl http://localhost:8080/cron/task/network_monitor/status | jq .
+```
+
+**查看所有任务概览：**
+```bash
+curl http://localhost:8080/cron/tasks | jq .
 ```
 
 **重置监控状态：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
   -d '{"action": "reset"}'
 ```
 
-**调整配置：**
+**立即执行检测（用于测试）：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
-  -d '{
-    "action": "update_config",
-    "config": {
-      "check_interval": 120,
-      "fail_threshold": 5
-    }
-  }'
+  -d '{"action": "run_now"}'
 ```
+
+> 💡 **配置调整**：当前版本的配置调整需要修改配置文件并重启服务。后续版本将支持通过API动态调整配置参数。
 
 ## 最佳实践
 

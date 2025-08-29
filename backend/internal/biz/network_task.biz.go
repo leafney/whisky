@@ -77,7 +77,7 @@ func (nt *NetworkTask) StartTask() error {
 	}
 
 	// 初始化监控状态（从配置文件读取配置）
-	nt.XLog.Infof("初始化网络监控配置 - 检测间隔: %ds, 测试主机数: %d", 
+	nt.XLog.Infof("初始化网络监控配置 - 检测间隔: %ds, 测试主机数: %d",
 		nt.Config.NetworkMonitor.CheckInterval, len(nt.Config.NetworkMonitor.TestHosts))
 	if err := nt.MonitorBiz.InitNetworkMonitorFromConfig(); err != nil {
 		return fmt.Errorf("初始化网络监控失败: %v", err)
@@ -85,7 +85,7 @@ func (nt *NetworkTask) StartTask() error {
 
 	// 从配置文件构建 cron 表达式（每 N 秒执行一次）
 	cronExpr := fmt.Sprintf("*/%d * * * * *", nt.Config.NetworkMonitor.CheckInterval)
-	nt.XLog.Debugf("创建定时任务 - Cron表达式: %s (每%d秒执行一次)", 
+	nt.XLog.Debugf("创建定时任务 - Cron表达式: %s (每%d秒执行一次)",
 		cronExpr, nt.Config.NetworkMonitor.CheckInterval)
 
 	// 注册任务方法

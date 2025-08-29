@@ -36,7 +36,7 @@ func (a *YAcd) YacdClashAction(c *fiber.Ctx) error {
 
 	var data map[string]string
 	if err := parsex.ParseJson(c, &data); err != nil {
-		a.XLog.Errorf("解析 body 参数操作异常", err)
+		a.XLog.Errorf("解析 body 参数操作异常: %v", err)
 		return response.Fail(c, "Invalid request body")
 	}
 

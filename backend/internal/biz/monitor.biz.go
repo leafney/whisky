@@ -144,7 +144,7 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 		return
 	}
 
-	b.XLog.Infof("开始执行网络连通性检测 - 连续失败次数: %d/%d", 
+	b.XLog.Infof("开始执行网络连通性检测 - 连续失败次数: %d/%d",
 		monitorStatus.ConsecutiveFails, monitorStatus.Config.FailThreshold)
 	now := time.Now()
 	monitorStatus.LastCheckTime = &now
@@ -167,7 +167,7 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 		}
 	}
 
-	b.XLog.Infof("检测结果汇总 - 成功: %d/%d, 失败: %d/%d", 
+	b.XLog.Infof("检测结果汇总 - 成功: %d/%d, 失败: %d/%d",
 		len(results)-failedHosts, len(results), failedHosts, len(results))
 	if len(successHosts) > 0 {
 		b.XLog.Debugf("成功主机: %v", successHosts)
@@ -195,7 +195,7 @@ func (b *Monitor) PerformNetworkCheck(ctx context.Context) {
 				monitorStatus.TotalRestarts, monitorStatus.RestartsInWindow, monitorStatus.Config.MaxRestarts)
 			b.executeRestart()
 		} else {
-			b.XLog.Infof("网络检测失败，但未达到重启条件 - 需要连续失败 %d 次", 
+			b.XLog.Infof("网络检测失败，但未达到重启条件 - 需要连续失败 %d 次",
 				monitorStatus.Config.FailThreshold-monitorStatus.ConsecutiveFails)
 		}
 	} else {
@@ -288,7 +288,7 @@ func (b *Monitor) checkAllHosts(ctx context.Context) []vmodel.HostCheckResult {
 			defer wg.Done()
 			hostStart := time.Now()
 			results[index] = b.pingHost(ctx, hostname)
-			b.XLog.Debugf("主机 %s 检测完成: 成功=%v, 耗时=%.0fms", 
+			b.XLog.Debugf("主机 %s 检测完成: 成功=%v, 耗时=%.0fms",
 				hostname, results[index].Success, float64(time.Since(hostStart).Nanoseconds())/1e6)
 		}(i, host)
 	}
@@ -350,7 +350,7 @@ func (b *Monitor) pingHost(ctx context.Context, host string) vmodel.HostCheckRes
 		result.Error = "所有连通性检测方式都失败"
 	}
 	result.Latency = time.Since(start)
-	b.XLog.Errorf("主机 %s 所有检测方式都失败，总耗时: %.0fms, 错误: %s", 
+	b.XLog.Errorf("主机 %s 所有检测方式都失败，总耗时: %.0fms, 错误: %s",
 		host, float64(result.Latency.Nanoseconds())/1e6, result.Error)
 	return result
 }
@@ -497,7 +497,7 @@ func (b *Monitor) isInCooldown() bool {
 
 // 执行重启操作
 func (b *Monitor) executeRestart() {
-	b.XLog.Errorf("网络连通性持续异常，执行路由器重启 - 连续失败 %d 次，达到重启阈值", 
+	b.XLog.Errorf("网络连通性持续异常，执行路由器重启 - 连续失败 %d 次，达到重启阈值",
 		monitorStatus.Config.FailThreshold)
 
 	// 更新重启统计
@@ -509,7 +509,7 @@ func (b *Monitor) executeRestart() {
 	monitorStatus.CurrentStatus = "cooldown"
 
 	b.XLog.Infof("更新重启统计 - 总重启次数: %d, 窗口内重启次数: %d/%d, 冷却期: %d分钟",
-		monitorStatus.TotalRestarts, monitorStatus.RestartsInWindow, 
+		monitorStatus.TotalRestarts, monitorStatus.RestartsInWindow,
 		monitorStatus.Config.MaxRestarts, monitorStatus.Config.CooldownPeriod)
 
 	// 记录重启日志
@@ -530,7 +530,7 @@ func (b *Monitor) executeRestart() {
 		// 延迟执行，确保状态已保存
 		b.XLog.Infof("延迟2秒后执行重启命令，确保状态保存完成")
 		time.Sleep(2 * time.Second)
-		
+
 		b.XLog.Infof("开始执行系统重启命令: %s", cmds.ScriptReboot)
 		if output, err := utils.RunBash(cmds.ScriptReboot); err != nil {
 			b.XLog.Errorf("执行重启命令失败: %v, 输出: %s", err, string(output))
@@ -544,18 +544,18 @@ func (b *Monitor) executeRestart() {
 func (b *Monitor) calculateAverageLatency(results []vmodel.HostCheckResult) float64 {
 	var totalLatency time.Duration
 	successCount := 0
-	
+
 	for _, result := range results {
 		if result.Success {
 			totalLatency += result.Latency
 			successCount++
 		}
 	}
-	
+
 	if successCount == 0 {
 		return 0
 	}
-	
+
 	avgNanos := float64(totalLatency.Nanoseconds()) / float64(successCount)
 	return avgNanos / 1e6 // 转换为毫秒
 }
@@ -565,16 +565,16 @@ func (b *Monitor) calculateAverageLatency(results []vmodel.HostCheckResult) floa
 // NetworkMonitorJob 网络监控定时任务执行函数
 func (b *Monitor) NetworkMonitorJob(ctx context.Context) {
 	b.XLog.Infof("定时任务触发 - 开始执行网络监控检测 [%s]", time.Now().Format("2006-01-02 15:04:05"))
-	
+
 	// 记录执行开始时间
 	startTime := time.Now()
-	
+
 	// 调用网络检测逻辑
 	b.PerformNetworkCheck(ctx)
-	
+
 	// 记录执行完成时间和耗时
 	duration := time.Since(startTime)
-	b.XLog.Infof("网络监控检测执行完成 - 总耗时: %.0fms [%s]", 
+	b.XLog.Infof("网络监控检测执行完成 - 总耗时: %.0fms [%s]",
 		float64(duration.Nanoseconds())/1e6, time.Now().Format("15:04:05"))
 }
 
@@ -584,14 +584,14 @@ func (b *Monitor) InitNetworkMonitorFromConfig() error {
 	config := &vmodel.NetworkMonitorConfig{
 		Enable:            b.Config.NetworkMonitor.Enable,
 		CheckInterval:     b.Config.NetworkMonitor.CheckInterval,
-		FailCheckInterval: 60,  // 默认失败后检测间隔：60秒
-		CheckTimeout:      10,  // 默认检测超时：10秒
+		FailCheckInterval: 60, // 默认失败后检测间隔：60秒
+		CheckTimeout:      10, // 默认检测超时：10秒
 		TestHosts:         b.Config.NetworkMonitor.TestHosts,
-		FailThreshold:     3,   // 默认连续失败阈值：3次
-		FailHostThreshold: 3,   // 默认失败主机数阈值：3个
-		MaxRestarts:       5,   // 默认最大重启次数：5次
-		RestartWindow:     24,  // 默认重启计数窗口：24小时
-		CooldownPeriod:    30,  // 默认冷却期：30分钟
+		FailThreshold:     3,  // 默认连续失败阈值：3次
+		FailHostThreshold: 3,  // 默认失败主机数阈值：3个
+		MaxRestarts:       5,  // 默认最大重启次数：5次
+		RestartWindow:     24, // 默认重启计数窗口：24小时
+		CooldownPeriod:    30, // 默认冷却期：30分钟
 	}
 
 	// 初始化监控状态
