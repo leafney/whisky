@@ -17,10 +17,17 @@ jobs:
     env:
       PROJECT_NAME: whisky 服务
     steps:
+      # 设置 Go 环境
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.22
+
+      # 设置 Bun 环境
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +43,55 @@ jobs:
           echo "git_branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
           echo "git_commit=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "build_time=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+      # 构建前端项目
+      - name: Install frontend dependencies
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            cd frontend
+            bun install
+          else
+            echo "Frontend not yet created, skipping..."
+          fi
+
+      - name: Build frontend
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            cd frontend
+            bun run build
+          else
+            echo "Frontend not yet created, skipping..."
+          fi
+
+      # 将前端构建产物移动到后端 web 目录
+      - name: Copy frontend build to backend
+        run: |
+          # 确保后端 web/dist 目录存在
+          mkdir -p backend/web/dist
+          # 清空 dist 目录
+          rm -rf backend/web/dist/*
+          # 如果前端构建产物存在，则复制
+          if [ -d "frontend/dist" ]; then
+            cp -R frontend/dist/* backend/web/dist/
+            echo "Frontend build copied to backend/web/dist/"
+            ls -la backend/web/dist/
+          else
+            echo "Frontend dist not found, using placeholder..."
+            echo "<!DOCTYPE html><html><head><title>whisky</title></head><body><h1>whisky service is running</h1></body></html>" > backend/web/dist/index.html
+          fi
+
+      # 准备后端依赖
+      - name: Prepare backend dependencies
+        run: |
+          cd backend
+          go mod tidy
+
+      # 验证后端可以正常构建（包含嵌入的静态文件）
+      - name: Test backend build
+        run: |
+          cd backend
+          go build -o whisky-test main.go
+          rm whisky-test
 
       - name: Install UPX
         uses: crazy-max/ghaction-upx@v3
@@ -68,6 +124,10 @@ jobs:
             **<font color=#56A6FE size=3> 🎉${{ env.PROJECT_NAME }}🎉 构建成功</font>**
 
             Action **[${{ github.workflow }}]** 构建成功
+
+            前端版本：React + Vite
+            后端版本：${{ env.app_version }}
+            构建时间：${{ env.build_time }}
 
             [下载二进制执行文件](${{ github.server_url }}/${{ github.repository }}/releases)
 

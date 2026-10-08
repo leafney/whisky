@@ -11,12 +11,13 @@ version: 2
 before:
   hooks:
     # You may remove this if you don't use go modules.
-    - go mod tidy
+    - cd backend && go mod tidy
 
 builds:
   - id: "whisky"
-    main: 'main.go'
+    main: 'backend/main.go'
     binary: 'whisky'
+    dir: '.'
     env:
       - CGO_ENABLED=0
     goos:
@@ -33,7 +34,7 @@ upx:
 
 archives:
   - files:
-      - src: './config/config.yaml'
+      - src: './backend/config/config.yaml'
         strip_parent: true
     format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
