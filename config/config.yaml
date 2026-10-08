@@ -1,5 +1,0 @@
-yacd:
-  port: 9999
-
-webhook:
-  addr: ''
