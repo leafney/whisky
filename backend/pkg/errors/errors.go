@@ -17,18 +17,18 @@ type ErrorCode string
 
 const (
 	// 系统错误
-	SystemError     ErrorCode = "SYSTEM_ERROR"
-	InvalidInput    ErrorCode = "INVALID_INPUT"
-	NotFoundError  ErrorCode = "NOT_FOUND"
-	Unauthorized   ErrorCode = "UNAUTHORIZED"
-	Forbidden      ErrorCode = "FORBIDDEN"
-	
+	SystemError   ErrorCode = "SYSTEM_ERROR"
+	InvalidInput  ErrorCode = "INVALID_INPUT"
+	NotFoundError ErrorCode = "NOT_FOUND"
+	Unauthorized  ErrorCode = "UNAUTHORIZED"
+	Forbidden     ErrorCode = "FORBIDDEN"
+
 	// 业务错误
-	ConfigError     ErrorCode = "CONFIG_ERROR"
-	NetworkError    ErrorCode = "NETWORK_ERROR"
-	MonitorError    ErrorCode = "MONITOR_ERROR"
-	CronError       ErrorCode = "CRON_ERROR"
-	DatabaseError   ErrorCode = "DATABASE_ERROR"
+	ConfigError   ErrorCode = "CONFIG_ERROR"
+	NetworkError  ErrorCode = "NETWORK_ERROR"
+	MonitorError  ErrorCode = "MONITOR_ERROR"
+	CronError     ErrorCode = "CRON_ERROR"
+	DatabaseError ErrorCode = "DATABASE_ERROR"
 )
 
 // BizError 业务错误

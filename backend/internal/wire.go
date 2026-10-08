@@ -37,9 +37,9 @@ var ProviderSet = wire.NewSet(
 	// 业务逻辑层
 	wire.Struct(new(biz.Monitor), "*"),
 	wire.Struct(new(biz.Home), "*"),
+	wire.Struct(new(biz.NetworkTask), "*"),
 
 	// 服务层（内部逻辑）
-	wire.Struct(new(service.NetworkMonitor), "*"),
 	wire.Struct(new(service.Cron), "*"),
 	wire.Struct(new(service.NetWork), "*"),
 	wire.Struct(new(service.Router), "*"),

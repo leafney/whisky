@@ -109,14 +109,36 @@ func (b *Monitor) pingHost(host string) vmodel.HostCheckResult {
 
 ## 配置说明
 
-### 配置文件示例
+### 🎉 精简配置文件示例（v2.0）
+```toml
+[NetworkMonitor]
+# 核心配置（仅需配置3个参数）
+Enable = true                    # 是否启用网络监控
+CheckInterval = 300             # 正常检测间隔（秒）
+TestHosts = [                   # 测试主机列表
+    "8.8.8.8",
+    "114.114.114.114", 
+    "1.1.1.1",
+    "223.5.5.5",
+    "www.baidu.com"
+]
+
+# 以下参数已内置默认值，无需配置：
+# FailCheckInterval = 60          # 失败后检测间隔（秒）
+# CheckTimeout = 10               # 单次检测超时（秒） 
+# FailThreshold = 3               # 连续失败阈值（次）
+# FailHostThreshold = 3           # 单次检测失败主机数阈值
+# MaxRestarts = 5                 # 最大重启次数
+# RestartWindow = 24              # 重启计数窗口期（小时）
+# CooldownPeriod = 30             # 重启后冷却期（分钟）
+```
+
+### 传统完整配置文件示例（向后兼容）
 ```toml
 [NetworkMonitor]
 # 基本设置
 Enable = true                    # 是否启用网络监控
 CheckInterval = 300             # 正常检测间隔（秒）
-FailCheckInterval = 60          # 失败后检测间隔（秒）
-CheckTimeout = 10               # 单次检测超时（秒）
 
 # 检测目标
 TestHosts = [                   # 测试主机列表
@@ -126,46 +148,89 @@ TestHosts = [                   # 测试主机列表
     "223.5.5.5",
     "www.baidu.com"
 ]
-
-# 失败判定
-FailThreshold = 3               # 连续失败阈值（次）
-FailHostThreshold = 3           # 单次检测失败主机数阈值
-
-# 重启保护
-MaxRestarts = 5                 # 最大重启次数
-RestartWindow = 24              # 重启计数窗口期（小时）
-CooldownPeriod = 30             # 重启后冷却期（分钟）
 ```
 
 ### 配置参数详解
 
+#### 📝 需要配置的参数
+| 参数 | 类型 | 默认值 | 必填 | 说明 |
+|------|------|--------|------| -----|
+| `Enable` | bool | false | ✅ | 是否启用网络监控功能 |
+| `CheckInterval` | int | 300 | ✅ | 正常状态下的检测间隔（秒） |
+| `TestHosts` | []string | 见配置示例 | ✅ | 用于检测的目标主机列表 |
+
+#### 🔧 内置默认值参数（无需配置）
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `Enable` | bool | false | 是否启用网络监控功能 |
-| `CheckInterval` | int | 300 | 正常状态下的检测间隔（秒） |
 | `FailCheckInterval` | int | 60 | 检测失败后的检测间隔（秒） |
 | `CheckTimeout` | int | 10 | 单次主机检测的超时时间（秒） |
-| `TestHosts` | []string | 见上 | 用于检测的目标主机列表 |
 | `FailThreshold` | int | 3 | 触发重启的连续失败次数 |
 | `FailHostThreshold` | int | 3 | 单次检测中失败主机数阈值 |
 | `MaxRestarts` | int | 5 | 时间窗口内最大重启次数 |
 | `RestartWindow` | int | 24 | 重启次数统计的时间窗口（小时） |
 | `CooldownPeriod` | int | 30 | 重启后的冷却期（分钟） |
 
+> 💡 **配置精简原则**：大多数参数都有经过优化的默认值，用户只需配置核心的3个参数即可使用。后续版本将在UI界面中提供高级参数配置功能。
+
 ## API 接口
 
-### 获取监控状态
+网络监控功能通过定时任务管理接口提供，所有API接口都包含功能启用状态检查。
+
+### 📋 可用接口列表
+
+#### 1. 获取所有任务状态（包括网络监控）
 ```http
-GET /router/monitor
+GET /cron/tasks
 ```
 
 **响应示例：**
 ```json
 {
   "code": 0,
+  "message": "success", 
+  "data": {
+    "tasks": [
+      {
+        "task_id": "network_monitor",
+        "name": "网络连通性监控",
+        "is_running": true,
+        "feature_enabled": true,
+        "config_valid": true
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+#### 2. 获取网络监控详细状态
+```http
+GET /cron/task/network_monitor/status
+```
+
+**功能未启用时响应：**
+```json
+{
+  "code": 0,
   "message": "success",
   "data": {
-    "status": {
+    "feature_enabled": false,
+    "message": "网络监控功能未启用，请在配置文件中启用该功能"
+  }
+}
+```
+
+**功能启用时响应：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "task_id": "network_monitor",
+    "task_running": true,
+    "feature_enabled": true,
+    "config_valid": true,
+    "monitor_status": {
       "enabled": true,
       "current_status": "running",
       "last_check_time": "2025-08-13T17:00:00Z",
@@ -179,89 +244,155 @@ GET /router/monitor
           "host": "8.8.8.8",
           "success": true,
           "latency": 50000000,
-          "check_time": "2025-08-13T17:00:00Z"
+          "check_time": "2025-08-13T17:00:00Z",
+          "error": ""
+        },
+        {
+          "host": "114.114.114.114", 
+          "success": false,
+          "latency": 10000000000,
+          "check_time": "2025-08-13T17:00:00Z",
+          "error": "连接超时"
         }
       ],
       "config": {
         "enable": true,
         "check_interval": 300,
         "fail_check_interval": 60,
-        "test_hosts": ["8.8.8.8", "114.114.114.114"]
+        "check_timeout": 10,
+        "test_hosts": ["8.8.8.8", "114.114.114.114"],
+        "fail_threshold": 3,
+        "fail_host_threshold": 3,
+        "max_restarts": 5,
+        "restart_window": 24,
+        "cooldown_period": 30
       }
     },
-    "stats": {
+    "monitor_stats": {
       "total_checks": 120,
       "successful_checks": 118,
       "failed_checks": 2,
-      "success_rate": 98.33,
-      "average_latency": 45000000
+      "success_rate": 98.33
     }
   }
 }
 ```
 
-### 控制监控操作
+#### 3. 控制网络监控任务
 ```http
-POST /router/monitor
+POST /cron/task/network_monitor
 Content-Type: application/json
 ```
 
 **请求参数：**
 ```json
 {
-  "action": "start|stop|restart|reset|update_config",
-  "config": {
-    // 配置参数（仅在start和update_config时需要）
-  }
+  "action": "start|stop|restart|reset|run_now"
 }
 ```
 
 **支持的操作：**
-- `start`: 启动网络监控
-- `stop`: 停止网络监控
-- `restart`: 重启网络监控
-- `reset`: 重置监控状态和统计
-- `update_config`: 更新配置
+- `start`: 启动网络监控任务
+- `stop`: 停止网络监控任务  
+- `restart`: 重启网络监控任务
+- `reset`: 重置监控状态和统计数据
+- `run_now`: 立即执行一次网络检测
+
+**成功响应：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "task_id": "network_monitor",
+    "action": "start",
+    "message": "网络监控任务已启动"
+  }
+}
+```
+
+**功能未启用时响应：**
+```json
+{
+  "code": -1,
+  "message": "网络监控功能未启用，请在配置文件中启用该功能后重启服务"
+}
+```
+
+#### 4. 获取可用任务方法
+```http
+GET /cron/methods
+```
+
+**响应示例：**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "methods": ["testJob", "networkMonitorJob"],
+    "count": 2
+  }
+}
+```
 
 ## 使用示例
 
-### 1. 启用自动监控
-编辑配置文件 `backend/config/config.toml`：
+### 1. 快速启用自动监控（推荐方式）
+编辑配置文件 `backend/data/config.toml`：
 ```toml
 [NetworkMonitor]
-Enable = true
-CheckInterval = 300
-TestHosts = ["8.8.8.8", "114.114.114.114", "1.1.1.1"]
+# 只需配置3个核心参数
+Enable = true                                    # 启用监控
+CheckInterval = 300                             # 5分钟检测一次
+TestHosts = ["8.8.8.8", "114.114.114.114"]      # 检测谷歌和114DNS
 ```
 
 重启程序，监控将自动启动。
 
-### 2. 手动控制监控
+**优势：**
+- ✅ 配置简单，只需3个参数
+- ✅ 其他7个参数使用优化的默认值
+- ✅ 适合大部分使用场景
 
-**启动监控：**
+### 2. 通过API控制监控
+
+**查看所有任务状态：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl http://localhost:8080/cron/tasks
+```
+
+**查看网络监控详细状态：**
+```bash
+curl http://localhost:8080/cron/task/network_monitor/status
+```
+
+**启动网络监控：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
-  -d '{
-    "action": "start",
-    "config": {
-      "enable": true,
-      "check_interval": 180,
-      "test_hosts": ["8.8.8.8", "114.114.114.114"]
-    }
-  }'
+  -d '{"action": "start"}'
 ```
 
-**查看状态：**
+**停止网络监控：**
 ```bash
-curl http://localhost:8080/router/monitor
-```
-
-**停止监控：**
-```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
   -d '{"action": "stop"}'
+```
+
+**立即执行一次检测：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
+  -H "Content-Type: application/json" \
+  -d '{"action": "run_now"}'
+```
+
+**重置监控状态：**
+```bash
+curl -X POST http://localhost:8080/cron/task/network_monitor \
+  -H "Content-Type: application/json" \
+  -d '{"action": "reset"}'
 ```
 
 ### 3. 监控日志示例
@@ -318,28 +449,29 @@ curl -X POST http://localhost:8080/router/monitor \
 
 **查看详细状态：**
 ```bash
-curl http://localhost:8080/router/monitor | jq .
+curl http://localhost:8080/cron/task/network_monitor/status | jq .
+```
+
+**查看所有任务概览：**
+```bash
+curl http://localhost:8080/cron/tasks | jq .
 ```
 
 **重置监控状态：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
   -d '{"action": "reset"}'
 ```
 
-**调整配置：**
+**立即执行检测（用于测试）：**
 ```bash
-curl -X POST http://localhost:8080/router/monitor \
+curl -X POST http://localhost:8080/cron/task/network_monitor \
   -H "Content-Type: application/json" \
-  -d '{
-    "action": "update_config",
-    "config": {
-      "check_interval": 120,
-      "fail_threshold": 5
-    }
-  }'
+  -d '{"action": "run_now"}'
 ```
+
+> 💡 **配置调整**：当前版本的配置调整需要修改配置文件并重启服务。后续版本将支持通过API动态调整配置参数。
 
 ## 最佳实践
 
@@ -371,6 +503,24 @@ curl -X POST http://localhost:8080/router/monitor \
 - 并发检测多个主机，提高检测效率
 - 使用连接池和超时控制，避免资源泄露
 - 智能调度减少不必要的检测，节省系统资源
+
+## 🔄 更新日志
+
+### v2.0 配置精简版 (2025-08-28)
+- ✨ **配置大幅精简**：从10个配置项减少到3个（70%减少）
+- 🔧 **智能默认值**：7个参数内置优化默认值，无需配置
+- 📝 **向后兼容**：保持API接口完整功能
+- 🎯 **用户友好**：降低配置复杂度，提升使用体验
+
+**主要变更：**
+- 配置文件只需3个核心参数：`Enable`、`CheckInterval`、`TestHosts`
+- 以下参数移至代码默认值：`FailCheckInterval`、`CheckTimeout`、`FailThreshold`、`FailHostThreshold`、`MaxRestarts`、`RestartWindow`、`CooldownPeriod`
+- 更新了配置验证逻辑，移除对已删除参数的引用
+
+**升级指南：**
+1. 编辑现有配置文件，删除除核心3个参数外的其他配置项
+2. 重启应用，功能保持不变（使用默认值）
+3. 后续版本将在UI中提供高级参数配置
 
 ---
 
